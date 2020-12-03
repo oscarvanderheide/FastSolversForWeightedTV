@@ -1,9 +1,11 @@
 name = "FastSolversForWeightedTV"
-authors = ["Gabrio Rizzuti"]
 uuid = "3521e485-16e8-49c3-934a-dec609b578e8"
+authors = ["Gabrio Rizzuti"]
+
+[deps]
+DifferentialOperatorsForTV = "23d3868e-5c8a-4ecd-9772-c4b5ff8fef83"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+VectorFields = "4e90a262-92ea-425b-8506-31707f41efc5"
 
 [compat]
 julia = "1.4.2"
-
-[deps]
-DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"

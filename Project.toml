@@ -1,6 +1,9 @@
-name = "TotalVariationRegularizationForMRI"
+name = "FastSolversForWeightedTV"
 authors = ["Gabrio Rizzuti"]
+uuid = "3521e485-16e8-49c3-934a-dec609b578e8"
+
 [compat]
 julia = "1.4.2"
+
 [deps]
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"

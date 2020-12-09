@@ -1,24 +1,23 @@
-module TotalVariationRegularization
+module FastSolversForWeightedTV
 
-# Standard precision
-T  = Float32
-# T = Float64 # uncomment for double precision
-CT = Complex{T}
+# Modules
+using LinearAlgebra, VectorFields, DifferentialOperatorsForTV, CUDA, Flux
 
-# Custom types
-include("vectorfield.jl")
+import Base: *
 
-# Linear operator wrappers
-include("conv_utils.jl")
-include("diffops.jl")
+# Utils
+include("./utils.jl")
 
-# Proximal operator solvers
-include("proxop_solver.jl")
+# Types
+include("./functional_abstract_types.jl")
 
-# Gradient preconditioning utils
-include("grad_prec.jl")
+# Collection of proximable functions
+include("./proximable_functions.jl")
 
-# CUDA utils
-include("cuda.jl")
+# FISTA
+include("./fista_solver.jl")
+
+# # L21 solvers
+# include("./L21_solvers.jl")
 
 end

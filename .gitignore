@@ -1,4 +1,6 @@
-data/ehrhardt_matlab
+data/ehrhardt_matlab/
+plots/
+*.png
 
 ################################################################################
 #                                   VS-code                                    #

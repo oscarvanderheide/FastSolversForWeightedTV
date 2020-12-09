@@ -8,4 +8,4 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 VectorFields = "4e90a262-92ea-425b-8506-31707f41efc5"
 
 [compat]
-julia = "1.4.2"
+julia = "1.5.3"

@@ -1,6 +1,7 @@
 #: Solver types
 
 export DifferentiableFunction, ProximableFunction
+export grad, grad!, proxy, proxy!, conjugate
 
 
 # Abstract types
@@ -38,7 +39,9 @@ proxy(λ::T, g::ScaledProximableFunction{DT}, x::DT) where {T,DT<:AbstractField2
 struct ConjugateProximableFunction{DT} <: ProximableFunction{DT} # g^* : DT -> R
     g::ProximableFunction{DT}
 end
-proxy(λ::T, g::ConjugateProximableFunction{DT}, x::DT) where {T,DT<:AbstractField2D{T}} = proxy(T(1)/λ, g.g, x/λ)
+function proxy(λ::T, g::ConjugateProximableFunction{DT}, y::DT) where {T,DT<:AbstractField2D{T}}
+    return nothing, y-λ*proxy(T(1)/λ, g.g, y/λ)[2]
+end
 
 conjugate(g::ProximableFunction{DT}) where DT = ConjugateProximableFunction{DT}(g)
 conjugate(g::ConjugateProximableFunction{DT}) where DT = g.g

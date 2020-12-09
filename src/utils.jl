@@ -1,3 +1,5 @@
 #: Utils
 
-update!(x_::T, x::T) where {T<:AbstractField2D{T}} = (x_.array .= x.array)
+export update!
+
+update!(x_::DT, x::DT) where {DT<:AbstractField2D} = (x_.array .= x.array)

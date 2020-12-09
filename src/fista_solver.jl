@@ -4,15 +4,31 @@
 export solverFISTA, optFISTA
 
 
+# Options for FISTA
+
+struct optFISTA{DT,T}
+    initial_estimate::DT
+    steplength::T
+    niter::Int64
+    tol::T
+    log::Bool
+    verbose::Bool
+end
+
+optFISTA(initial_estimate::DT, steplength::T; niter::Int64=100, tol::T=T(0), log::Bool=false, verbose::Bool=false) where {DT,T} = optFISTA{DT,T}(initial_estimate, steplength, niter, tol, log, verbose)
+
+
+# Generic solver
+
 """
 Solver for the regularized problem via FISTA-like gradient-projections:
 ```math
-\min_x f(x)+λ*g(x)
+min_x f(x)+λ*g(x)
 ```
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA
 """
-function solverFISTA(f::DifferentiableFunction{DT}, λ::T, g::ProximableFunction{DT}; opt::optFISTA = optFISTA()) where {DT<:AbstractField2D{T}}
+function solverFISTA(f::DifferentiableFunction{DT}, λ::T, g::ProximableFunction{DT}, opt::optFISTA{DT,T}) where {DT<:AbstractField2D,T}
 
     # Initialization
     x0 = deepcopy(opt.initial_estimate)
@@ -44,14 +60,3 @@ function solverFISTA(f::DifferentiableFunction{DT}, λ::T, g::ProximableFunction
     opt.log ? (return objective_hist, x) : (return x)
 
 end
-
-struct optFISTA{DT,T}
-    initial_estimate::DT
-    steplength::T
-    niter::Int64
-    tol::T
-    log::Bool
-    verbose::Bool
-end
-
-optFISTA(initial_estimate::DT, steplength::T; niter::Int64=100, tol::T=T(0), log::Bool=false, verbose::Bool=false) where {DT,T} = optFISTA{DT,T}(initial_estimate, steplength, niter, tol, log, verbose)

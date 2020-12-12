@@ -7,8 +7,8 @@ flag_gpu = true
 # Random data
 n = (3,3)
 h = (abs(randn(Float32)), abs(randn(Float32)))
-x1 = toField(randn(Float32, n))
-x2 = toField(randn(Float32, n))
+x1 = to_field(randn(Float32, n))
+x2 = to_field(randn(Float32, n))
 y = [x1; x2]; flag_gpu && (y = y |> gpu)
 
 # || ||_{2,1} norm
@@ -27,7 +27,10 @@ gval2, x2 = proxy(λ,     3f0*gfun, y)
 @test gval1 ≈ gval2 rtol=1f-3
 @test x1 ≈ x2 rtol=1f-3
 
+# δ for || ||_{2,∞} norm
+gfun_ = IndicatorFunction{Float32}(projection_L2Inf)
+
 # Convex conjugation
-gval1, x1 = proxy(λ,     conjugate(gfun), y)
-gval2, p2 = proxy(1f0/λ, gfun,            y/λ); x2 = y-λ*p2
+gval1, x1 = proxy(λ, conjugate(gfun), y)
+gval2, x2 = proxy(λ, gfun_,           y)
 @test x1 ≈ x2 rtol=1f-3

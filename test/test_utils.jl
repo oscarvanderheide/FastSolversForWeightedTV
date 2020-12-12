@@ -6,9 +6,9 @@ flag_gpu = true
 # Random input
 n = (1001, 2001)
 h = (abs(randn(Float32)), abs(randn(Float32)))
-u = toField(randn(Float32, n)); flag_gpu && (u = u |> gpu)
+u = to_field(randn(Float32, n)); flag_gpu && (u = u |> gpu)
 
 # In-place update
-u_ = initialize_as(u)
+u_ = undef_as(u)
 update!(u_, u)
 @test u_ ≈ u rtol=1f-3

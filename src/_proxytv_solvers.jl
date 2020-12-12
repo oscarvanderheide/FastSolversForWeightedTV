@@ -114,7 +114,7 @@ function solverProxyTV(y::ScalarField{T}, λ::T; opt::optProxyTV = optProxyTV())
 
     # Minimization loop
     log && (fval = zeros(T, niter))
-    p0 = VectorField2D(cuzeros(y,n), cuzeros(y,n))
+    p0 = VectorField2D(zeros_as(y,n), zeros_as(y,n))
     q = p0
     t0 = T(1)
     for i = 1:niter

@@ -21,7 +21,10 @@ include("./differentiable_functions.jl")
 # FISTA
 include("./fista_solver.jl")
 
-# # L21 solvers
-# include("./L21_solvers.jl")
+# L21 solvers
+include("./proxyl21_solver.jl")
+
+# TV solvers
+include("./proxyTV_solver.jl")
 
 end

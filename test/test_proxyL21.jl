@@ -18,8 +18,13 @@ y = to_scalar_field(y)
 L = gradient_op(n; h=h, flag_gpu=flag_gpu)
 
 # Optimization options
-opt = optProxyL21(; steplength=1f0/(8f0*λ), niter=200, tol=1f-3, nesterov=true, log=true, verbose=true)
+niter=300
+opt = optProxyL21(; steplength=1f0/(8f0*λ), niter=niter, tol=1f-3, nesterov=true, log=true, verbose=false)
 
 # Solver: 0.5*||x-y||^2+||L*x||_{2,1}
 @elapsed fval, x = solverProxyL21(y, λ, L; opt=opt)
 x = x |> cpu
+
+# Plot
+figure(); imshow(x[:,:,1,1]); title(string("TV proximal operator, ", L"niter = ", string(niter), ", ", L"\lambda = ", string(λ)))
+savefig("./plots/proxopL21.png", dpi=300, transparent=false, bbox_inches="tight")

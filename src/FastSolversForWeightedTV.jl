@@ -12,6 +12,9 @@ include("./utils.jl")
 # Types
 include("./functional_abstract_types.jl")
 
+# Convex set types and projections
+include("./convex_sets.jl")
+
 # Collection of proximable functions
 include("./proximable_functions.jl")
 
@@ -21,10 +24,7 @@ include("./differentiable_functions.jl")
 # FISTA
 include("./fista_solver.jl")
 
-# L21 solvers
+# L21 solvers (general)
 include("./proxyl21_solver.jl")
-
-# TV solvers
-include("./proxyTV_solver.jl")
 
 end

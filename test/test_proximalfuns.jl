@@ -7,8 +7,8 @@ flag_gpu = true
 # Random data
 n = (3,3)
 h = (abs(randn(Float32)), abs(randn(Float32)))
-x1 = to_field(randn(Float32, n))
-x2 = to_field(randn(Float32, n))
+x1 = to_scalar_field(randn(Float32, n))
+x2 = to_scalar_field(randn(Float32, n))
 y = [x1; x2]; flag_gpu && (y = y |> gpu)
 
 # || ||_{2,1} norm

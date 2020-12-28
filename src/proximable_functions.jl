@@ -7,21 +7,13 @@ export VectorFieldNorm, IndicatorFunction, projection_L2Inf, project, project!
 # Indicator functions
 
 """
-Indicator function δ_C(x) = {0, if x ∈ C; ∞, otherwise}
+Indicator function δ_C(x) = {0, if x ∈ C; ∞, otherwise} for convex set C
 """
 struct IndicatorFunction{DT} <: ProximableFunction{DT}
     projection::Function # Π: x -> y ∈ C
 end
 proxy(λ::T, g::IndicatorFunction{ScalarField2D{T}}, x::ScalarField2D{T}) where T = g.projection(x)
 proxy(λ::T, g::IndicatorFunction{VectorField2D{T}}, x::VectorField2D{T}) where T = g.projection(x)
-
-function projection_L2Inf(v::VectorField2D{T}; eps::T=T(1e-20)) where T
-    ptnorm_v = ptnorm(v; p=2)
-    norm(ptnorm_v; p=Inf) <= T(1) ? (return (T(0), v)) : (return (Inf, v*( (ptnorm_v >= T(1)) /(ptnorm_v+eps)+(ptnorm_v < T(1)) )))
-end
-
-project(x::DT, C::IndicatorFunction{DT}) where DT = C.projection(x)
-project!(y::DT, x::DT, C::IndicatorFunction{DT}) where DT = update!(y, project(x, C))
 
 
 # Vector field norm

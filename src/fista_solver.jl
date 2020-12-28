@@ -26,7 +26,7 @@ optFISTA(initial_estimate::DT; steplength::T=T(1), niter::Int64=100, tol::T=T(0)
 """
 Solver for the regularized problem via FISTA-like gradient-projections:
 ```math
-min_{x∈C} f(x)+λ*g(x)
+min_x f(x)+λ*g(x)
 ```
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA

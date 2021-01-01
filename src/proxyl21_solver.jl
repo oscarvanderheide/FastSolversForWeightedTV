@@ -27,7 +27,7 @@ Solver for the regularized problem via gradient-projections:
 min_{x∈C} 0.5*||x-y||^2+λ*||L*x||_{2,1}
 ```
 """
-function solverProxyL21(y::ScalarField2D{T}, λ::T, L::AbstractFieldLinearOperator{ScalarField2D{T},VectorField2D{T}}; C::ConvexSet=no_constraints(ScalarField2D{T}), opt::Options=optProxyL21()) where T
+function solverProxyL21(y::ScalarField2D{T}, λ::T, L::AbstractFieldLinearOperator{ScalarField2D{T},VectorField2D{T}}; C::ProjectionableSet=no_constraints(ScalarField2D{T}), opt::Options=optProxyL21()) where T
 
     # Initialization
     x  = undef_scalar_as(y) # primal-variable pre-allocation

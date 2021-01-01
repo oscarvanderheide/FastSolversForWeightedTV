@@ -1,20 +1,20 @@
 #: Convex set utilities
 
 
-export ConvexSet, NoConstraints, no_constraints, PositiveValues, positive_values, L_ball, ell_ball, project, project!
+export ProjectionableSet, NoConstraints, no_constraints, PositiveValues, positive_values, L_ball, ell_ball, project, project!
 
 
-# Convex sets abstract type
+# "Projectionable" convex sets abstract type
 
 """
-Expected behavior for convex sets: project(x, C), project!(x_, x, C)
+Expected behavior for projectionable sets: project(x, C), project!(x_, x, C)
 """
-abstract type ConvexSet{DT} end
+abstract type ProjectionableSet{DT} end
 
 
 ## No constraint set
 
-struct NoConstraints{DT} <: ConvexSet{DT} end
+struct NoConstraints{DT} <: ProjectionableSet{DT} end
 
 no_constraints(DT::DataType) = NoConstraints{DT}()
 
@@ -26,7 +26,7 @@ project!(x_::DT, x::DT, C::NoConstraints{DT}) where DT = update!(x_, x)
 
 ### 2,Inf
 
-struct L_ball{T,p1,p2} <: ConvexSet{VectorField2D{T}} end
+struct L_ball{T,p1,p2} <: ProjectionableSet{VectorField2D{T}} end
 
 ell_ball(T::DataType, p1::Number, p2::Number) = L_ball{T,p1,p2}()
 
@@ -42,7 +42,7 @@ project!(v_, v::VectorField2D{T}, C::L_ball{T,2,Inf}; eps::T=T(1e-20)) where T =
 
 ## Positivity
 
-struct PositiveValues{T} <: ConvexSet{ScalarField2D{T}} end
+struct PositiveValues{T} <: ProjectionableSet{ScalarField2D{T}} end
 
 positive_values(T::DataType) = PositiveValues{T}()
 

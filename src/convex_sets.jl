@@ -46,5 +46,5 @@ struct PositiveValues{T} <: ProjectionableSet{ScalarField2D{T}} end
 
 positive_values(T::DataType) = PositiveValues{T}()
 
-project(x::ScalarField2D{T}, C::PositiveValues{T}) where T = x*(x >= T(0))
+project(x::ScalarField2D{T}, C::PositiveValues{T}) where T = x*(x >= T(0)) ## max.(0f0, x)?
 project!(x_::ScalarField2D{T}, x::ScalarField2D{T}, C::PositiveValues{T}) where T = update!(x_, projection(x, C))

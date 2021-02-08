@@ -1,30 +1,26 @@
 module FastSolversForWeightedTV
 
 # Modules
-using LinearAlgebra, VectorFields, DifferentialOperatorsForTV, CUDA, Flux
+using LinearAlgebra, NNlib, CUDA, Flux, AbstractLinearOperators
 
-import Base: *
-import Flux: update!
+# Gradient operator
+include("./padding.jl")
+include("./gradient.jl")
 
-# Utils
-include("./utils.jl")
+# Differentiable functions
+include("./differentiable_type.jl")
+include("./differentiable_utils.jl")
 
-# Types
-include("./functional_abstract_types.jl")
+# # Proximable functions
+# include("./proximable_type.jl")
 
-# Convex set types and projections
-include("./convex_sets.jl")
+# # Convex set types and projections
+# include("./convex_sets.jl")
 
-# Collection of proximable functions
-include("./proximable_functions.jl")
+# # FISTA
+# include("./fista_solver.jl")
 
-# Collection of differentiable functions
-include("./differentiable_functions.jl")
-
-# FISTA
-include("./fista_solver.jl")
-
-# L21 solvers (general)
-include("./proxyl21_solver.jl")
+# # L21 solvers (general)
+# include("./proxyl21_solver.jl")
 
 end

@@ -1,50 +1,46 @@
-#: Convex set utilities
+#: Convex set types
 
 
-export ProjectionableSet, NoConstraints, no_constraints, PositiveValues, positive_values, L_ball, ell_ball, project, project!
+export ConvexSet, project, project!, no_constraints, indicator
 
 
 # "Projectionable" convex sets abstract type
 
 """
-Expected behavior for projectionable sets: project(x, C), project!(x_, x, C)
+Expected behavior for convex sets: y = project!(x, C, y), y = Π_C(x)
 """
-abstract type ProjectionableSet{DT} end
+abstract type ConvexSet{DT} end
 
+function project(x::DT, C::ConvexSet{DT}) where {T,N,DT<:AbstractArray{T,N}}
+    y = similar(x)
+    return project!(x, C, y)
+end
+
+
+# Concrete types
 
 ## No constraint set
 
-struct NoConstraints{DT} <: ProjectionableSet{DT} end
+struct NoConstraints{DT}<:ConvexSet{DT} end
 
 no_constraints(DT::DataType) = NoConstraints{DT}()
+no_constraints(T::DataType, N::Int64) = NoConstraints{AbstractArray{T,N}}()
 
-project(x::DT, C::NoConstraints{DT}) where DT = x
-project!(x_::DT, x::DT, C::NoConstraints{DT}) where DT = update!(x_, x)
-
-
-## L_{p1,p2} unitary ball: C={x:||x||_{p1,p2}<=1}
-
-### 2,Inf
-
-struct L_ball{T,p1,p2} <: ProjectionableSet{VectorField2D{T}} end
-
-ell_ball(T::DataType, p1::Number, p2::Number) = L_ball{T,p1,p2}()
-
-function project(v::VectorField2D{T}, C::L_ball{T,2,Inf}; eps::T=T(1e-20)) where T
-    ptnorm_v = ptnorm(v; p=2)
-    norm(ptnorm_v; p=Inf) <= T(1) ? (return v) : (return v*( (ptnorm_v >= T(1)) /(ptnorm_v+eps)+(ptnorm_v < T(1)) ))
+function project!(x::DT, C::NoConstraints{DT}, y::DT) where {T,N,DT<:AbstractArray{T,N}}
+    y .= x
+    return y
 end
 
-project!(v_, v::VectorField2D{T}, C::L_ball{T,2,Inf}; eps::T=T(1e-20)) where T = update!(v_, projection(v, C; eps=eps))
 
-### TO DO: (1,2), (2,2), (Inf,2), ...
+# Indicator functions
 
+"""
+Indicator function δ_C(x) = {0, if x ∈ C; ∞, otherwise} for convex sets C
+"""
+struct Indicator{DT}<:ProximableFunction{DT}
+    C::ConvexSet{DT}
+end
 
-## Positivity
+proxy!(y::DT, ::Any, δ::Indicator{DT}, x::DT) where {T,N,DT<:AbstractArray{T,N}} = project!(y, δ.C, x)
 
-struct PositiveValues{T} <: ProjectionableSet{ScalarField2D{T}} end
-
-positive_values(T::DataType) = PositiveValues{T}()
-
-project(x::ScalarField2D{T}, C::PositiveValues{T}) where T = x*(x >= T(0)) ## max.(0f0, x)?
-project!(x_::ScalarField2D{T}, x::ScalarField2D{T}, C::PositiveValues{T}) where T = update!(x_, projection(x, C))
+indicator(C::ConvexSet{DT}) where DT = Indicator{DT}(C)

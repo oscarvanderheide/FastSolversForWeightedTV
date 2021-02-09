@@ -6,7 +6,7 @@ export DifferentiableFunction, grad, grad!
 # Abstract type
 
 """Expected behavior for DifferentiableFunction:
-- fval::T = grad!(f::DifferentiableFunction{DT}, x::DT, g::DT) where {T,N,DT<:AbstractArray{T,N}}
+- fval::T = grad!(f::DifferentiableFunction{DT}, x::DT, g::DT) where {T,N,DT<:AbstractArray{T,N}} 
 """
 abstract type DifferentiableFunction{DT} end
 

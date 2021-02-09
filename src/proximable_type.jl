@@ -27,8 +27,7 @@ end
 
 proxy!(y::DT, λ::T, g::ScaledProximableFunction{DT}, x::DT) where {T,N,DT<:AbstractArray{T,N}} = proxy!(y, λ*g.c, g.g, x)
 
-import Base: *
-*(c::T, g::ProximableFunction{DT}) where {T,N,DT<:AbstractArray{T,N}} = ScaledProximableFunction{DT}(c, g)
+Base.:*(c::T, g::ProximableFunction{DT}) where {T,N,DT<:AbstractArray{T,N}} = ScaledProximableFunction{DT}(c, g)
 
 
 # Conjugation of proximable functions

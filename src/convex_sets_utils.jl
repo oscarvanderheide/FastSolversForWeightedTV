@@ -1,7 +1,7 @@
 #: Convex set utilities
 
 
-export ConvexSet, project, project!, no_constraints, ell_ball, box_constraints, indicator
+export ell_ball, upperlim_constraints, lowerlim_constraints, box_constraints, indicator
 
 
 # ℓball{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
@@ -32,7 +32,9 @@ struct LowerLimConstraints{DT}<:AbstractValueConstraints{DT}
 end
 
 function project!(x::DT, C::LowerLimConstraints{DT}, y::DT) where {T,DT<:AbstractArray{T,2}}
-    y[x.<C.a] .= C.a
+    idx = x.<C.a
+    y[idx] .= C.a
+    y[(!).(idx)] .= x[(!).(idx)]
     return y
 end
 
@@ -41,7 +43,9 @@ struct UpperLimConstraints{DT}<:AbstractValueConstraints{DT}
 end
 
 function project!(x::DT, C::UpperLimConstraints{DT}, y::DT) where {T,DT<:AbstractArray{T,2}}
-    y[x.>C.b] .= C.b
+    idx = x.>C.b
+    y[idx] .= C.b
+    y[(!).(idx)] .= x[(!).(idx)]
     return y
 end
 
@@ -51,14 +55,14 @@ struct BoxConstraints{DT}<:AbstractValueConstraints{DT}
 end
 
 function project!(x::DT, C::BoxConstraints{DT}, y::DT) where {T,DT<:AbstractArray{T,2}}
-    y[x.<a] .= C.a
-    y[x.>b] .= C.b
+    idx_a = x.<C.a
+    idx_b = x.>C.b
+    y[idx_a] .= C.a
+    y[idx_b] .= C.b
+    y[(!).(idx_a) || (!).(idx_b)] .= x[(!).(idx_a) || (!).(idx_b)]
     return y
 end
 
-function box_constraints(a::Union{Nothing,T}, b::Union{Nothing,T}) where T
-    (a === nothing && b === nothing) && return NoConstraints{AbstractArray{T,2}}()
-    (a === nothing && b !== nothing) && return UpperLimitConstraints{AbstractArray{T,2}}(b)
-    (a !== nothing && b === nothing) && return LowerLimitConstraints{AbstractArray{T,2}}(a)
-    (a !== nothing && b !== nothing) && return BoxConstraints{AbstractArray{T,2}}(a, b)
-end
+upperlim_constraints(b::T) where T = UpperLimConstraints{AbstractArray{T,2}}(b)
+lowerlim_constraints(a::T) where T = LowerLimConstraints{AbstractArray{T,2}}(a)
+box_constraints(a::T, b::T) where T = BoxConstraints{AbstractArray{T,2}}(a, b)

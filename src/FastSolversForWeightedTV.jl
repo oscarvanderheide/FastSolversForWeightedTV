@@ -14,12 +14,14 @@ include("./differentiable_utils.jl")
 # Proximable functions
 include("./norm_utils.jl")
 include("./proximable_type.jl")
-include("./convex_sets.jl")
 include("./proximable_utils.jl")
-include("./convex_sets_utils.jl")
 
 # FISTA solver
 include("./fista_solver.jl")
+
+# Convex set
+include("./convex_sets.jl")
+include("./convex_sets_utils.jl")
 
 # # L21 solvers (general)
 # include("./proxyl21_solver.jl")

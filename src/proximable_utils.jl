@@ -6,7 +6,7 @@ export ell_norm
 
 # ℓnorm
 
-struct ℓnorm{T,p1,p2}<:ConvexSet{AbstractArray{T,3}} end
+struct ℓnorm{T,p1,p2}<:ProximableFunction{AbstractArray{T,3}} end
 
 ell_norm(T::DataType, p1::Number, p2::Number) = ℓnorm{T,p1,p2}()
 

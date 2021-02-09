@@ -10,8 +10,7 @@ struct DiffPlusProxFunction{DT}
     g::ProximableFunction{DT}
 end
 
-import Base: +
-+(f::DifferentiableFunction{DT}, g::ProximableFunction{DT}) where DT = DiffPlusProxFunction{DT}(f, g)
+Base.:+(f::DifferentiableFunction{DT}, g::ProximableFunction{DT}) where DT = DiffPlusProxFunction{DT}(f, g)
 
 
 # Options type for FISTA

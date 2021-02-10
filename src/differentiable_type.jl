@@ -8,9 +8,9 @@ export DifferentiableFunction, grad, grad!
 """Expected behavior for DifferentiableFunction:
 - fval::T = grad!(f::DifferentiableFunction{DT}, x::DT, g::DT) where {T,N,DT<:AbstractArray{T,N}} 
 """
-abstract type DifferentiableFunction{DT} end
+abstract type DifferentiableFunction{T,N} end
 
-function grad(f::DifferentiableFunction{DT}, x::DT) where {T,N,DT<:AbstractArray{T,N}}
+function grad(f::DifferentiableFunction{T,N}, x::AbstractArray{T,N}) where {T,N}
     g = similar(x)
     fval = grad!(f, x, g)
     return fval, g

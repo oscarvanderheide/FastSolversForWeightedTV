@@ -12,7 +12,7 @@ y = cat(x1, x2; dims=3); flag_gpu && (y = y |> gpu)
 
 # Linear operator
 h = (1f0,1f0)
-A = gradient_2D(n, h; gpu=flag_gpu)
+A = gradient_2D(n; h=h, gpu=flag_gpu)
 
 # Least-square objective
 fun = leastsquares_misfit(A, y)

@@ -1,87 +1,35 @@
 #: Differential operators
 
-export HorzDerivative2D, VertDerivative2D, Gradient2D, horz_derivative_2D, vert_derivative_2D, gradient_2D
+export Gradient2D, CuGradient2D, gradient_2D
 
 
-# Differential operators
+# Gradient (linear operator)
 
-## Horizontal derivative
-
-mutable struct HorzDerivative2D{T}<:AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,2}}
-    spacing::T
-    padding::Padding2D{T}
-    cdims::DenseConvDims
-    stencil::AbstractArray{T,4}
-end
-
-AbstractLinearOperators.domain_size(D::HorzDerivative2D) = D.cdims.I
-AbstractLinearOperators.range_size(D::HorzDerivative2D) = D.cdims.I
-AbstractLinearOperators.matvecprod(D::HorzDerivative2D{T}, u::AbstractArray{T,2}) where T = conv(reshape(pad(u, D.padding), size(u,1)+1,size(u,2), 1, 1), D.stencil, D.cdims)[:,:,1,1]
-AbstractLinearOperators.matvecprod_adj(D::HorzDerivative2D{T}, v::AbstractArray{T,2}) where T = restrict(∇conv_data(reshape(v, size(v)..., 1, 1), D.stencil, D.cdims)[:,:,1,1], D.padding)
-
-function horz_derivative_2D(n::Tuple{Int64,Int64}, dx::T; pad_type::String="periodic", gpu::Bool=false) where T
-
-    # Convolution
-    Dx = reshape([T(1)/dx T(-1)/dx], 2, 1, 1, 1)
-    cdims = DenseConvDims((n[1]+1,n[2],1,1), (2,1,1,1); stride=(1,1), padding=(0,0))
-    gpu && (Dx = Dx |> Flux.gpu)
-
-    # Padding
-    P = padding(pad_type, T, 0, 1, 0, 0)
-
-    return HorzDerivative2D{T}(dx, P, cdims, Dx)
-
-end
-
-Flux.gpu(Dx::HorzDerivative2D{T}) where T = HorzDerivative2D{T}(Dx.spacing, Dx.padding, Dx.cdims, gpu(Dx.stencil))
-Flux.cpu(Dx::HorzDerivative2D{T}) where T = HorzDerivative2D{T}(Dx.spacing, Dx.padding, Dx.cdims, cpu(Dx.stencil))
-
-## Vertical derivative
-
-mutable struct VertDerivative2D{T}<:AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,2}}
-    spacing::T
-    padding::Padding2D{T}
-    cdims::DenseConvDims
-    stencil::AbstractArray{T,4}
-end
-
-AbstractLinearOperators.domain_size(D::VertDerivative2D) = D.cdims.I
-AbstractLinearOperators.range_size(D::VertDerivative2D) = D.cdims.I
-AbstractLinearOperators.matvecprod(D::VertDerivative2D{T}, u::AbstractArray{T,2}) where T = conv(reshape(pad(u, D.padding), size(u,1),size(u,2)+1, 1, 1), D.stencil, D.cdims)[:,:,1,1]
-AbstractLinearOperators.matvecprod_adj(D::VertDerivative2D{T}, v::AbstractArray{T,2}) where T = restrict(∇conv_data(reshape(v, size(v)..., 1, 1), D.stencil, D.cdims)[:,:,1,1], D.padding)
-
-function vert_derivative_2D(n::Tuple{Int64,Int64}, dy::T; pad_type::String="periodic", gpu::Bool=false) where T
-
-    # Convolution
-    Dy = reshape([T(1)/dy T(-1)/dy], 1, 2, 1, 1)
-    cdims = DenseConvDims((n[1],n[2]+1,1,1), (1,2,1,1); stride=(1,1), padding=(0,0))
-    gpu && (Dy = Dy |> Flux.gpu)
-
-    # Padding
-    P = padding(pad_type, T, 0, 0, 0, 1)
-
-    return VertDerivative2D{T}(dy, P, cdims, Dy)
-
-end
-
-Flux.gpu(Dy::VertDerivative2D{T}) where T = VertDerivative2D{T}(Dy.spacing, Dy.padding, Dy.cdims, gpu(Dy.stencil))
-Flux.cpu(Dy::VertDerivative2D{T}) where T = VertDerivative2D{T}(Dy.spacing, Dy.padding, Dy.cdims, cpu(Dy.stencil))
-
-## Gradient
-
-mutable struct Gradient2D{T}<:AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,3}}
+struct Gradient2D{T}<:AbstractLinearOperator{Array{T,2},Array{T,3}}
     spacing::Tuple{T,T}
     padding::Padding2D{T}
     cdims::DenseConvDims
-    stencil::AbstractArray{T,4}
+    stencil::Array{T,4}
 end
 
-AbstractLinearOperators.domain_size(D::Gradient2D) = D.cdims.I
-AbstractLinearOperators.range_size(D::Gradient2D) = (D.cdims.I..., 2)
-AbstractLinearOperators.matvecprod(D::Gradient2D{T}, u::AbstractArray{T,2}) where T = conv(reshape(pad(u, D.padding), size(u,1)+1,size(u,2)+1, 1, 1), D.stencil, D.cdims)[:,:,:,1]
-AbstractLinearOperators.matvecprod_adj(D::Gradient2D{T}, v::AbstractArray{T,3}) where T = restrict(∇conv_data(reshape(v, size(v)..., 1), D.stencil, D.cdims)[:,:,1,1], D.padding)
+AbstractLinearOperators.domain_size(D::Gradient2D) = D.cdims.I.-(1,1)
+AbstractLinearOperators.range_size(D::Gradient2D) = (D.cdims.I.-(1,1)..., 2)
+AbstractLinearOperators.matvecprod(D::Gradient2D{T}, u::Array{T,2}) where T = conv(reshape(pad(u, D.padding), size(u,1)+1,size(u,2)+1, 1, 1), D.stencil, D.cdims)[:,:,:,1]
+AbstractLinearOperators.matvecprod_adj(D::Gradient2D{T}, v::Array{T,3}) where T = restrict(∇conv_data(reshape(v, size(v)..., 1), D.stencil, D.cdims)[:,:,1,1], D.padding)
 
-function gradient_2D(n::Tuple{Int64,Int64}, h::Tuple{T,T}; pad_type::String="periodic", gpu::Bool=false) where T
+struct CuGradient2D{T}<:AbstractLinearOperator{CuArray{T,2},CuArray{T,3}}
+    spacing::Tuple{T,T}
+    padding::Padding2D{T}
+    cdims::DenseConvDims
+    stencil::CuArray{T,4}
+end
+
+AbstractLinearOperators.domain_size(D::CuGradient2D) = D.cdims.I.-(1,1)
+AbstractLinearOperators.range_size(D::CuGradient2D) = (D.cdims.I.-(1,1)..., 2)
+AbstractLinearOperators.matvecprod(D::CuGradient2D{T}, u::CuArray{T,2}) where T = conv(reshape(pad(u, D.padding), size(u,1)+1,size(u,2)+1, 1, 1), D.stencil, D.cdims)[:,:,:,1]
+AbstractLinearOperators.matvecprod_adj(D::CuGradient2D{T}, v::CuArray{T,3}) where T = restrict(∇conv_data(reshape(v, size(v)..., 1), D.stencil, D.cdims)[:,:,1,1], D.padding)
+
+function gradient_2D(n::Tuple{Int64,Int64}; h::Tuple{T,T}=(T(1),T(1)), pad_type::String="periodic", gpu::Bool=false) where T
 
     # Convolution
     D = cat(reshape([T(0) T(1)/h[1]; T(0) T(-1)/h[1]], 2, 2, 1, 1), reshape([T(0) T(0); T(1)/h[2] T(-1)/h[2]], 2, 2, 1, 1); dims=4)
@@ -91,9 +39,70 @@ function gradient_2D(n::Tuple{Int64,Int64}, h::Tuple{T,T}; pad_type::String="per
     # Padding
     P = padding(pad_type, T, 0, 1, 0, 1)
 
-    return Gradient2D{T}(h, P, cdims, D)
+    gpu ? (return CuGradient2D{T}(h, P, cdims, D)) : (return Gradient2D{T}(h, P, cdims, D))
 
 end
 
-Flux.gpu(D::Gradient2D{T}) where T = Gradient2D{T}(D.spacing, D.padding, D.cdims, gpu(D.stencil))
-Flux.cpu(D::Gradient2D{T}) where T = Gradient2D{T}(D.spacing, D.padding, D.cdims, cpu(D.stencil))
+Flux.gpu(D::Gradient2D{T}) where T = CuGradient2D{T}(D.spacing, D.padding, D.cdims, gpu(D.stencil))
+Flux.gpu(D::CuGradient2D{T}) where T = D
+Flux.cpu(D::Gradient2D{T}) where T = D
+Flux.cpu(D::CuGradient2D{T}) where T = Gradient2D{T}(D.spacing, D.padding, D.cdims, cpu(D.stencil))
+
+
+# Gradient (functional)
+
+function gradient_2D(u::Array{T,2}, ::PadZero2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = Array{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] = (-u[end,:])/h[1]
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] = (-u[:,end])/h[2]
+    return v
+end
+
+function gradient_2D(u::CuArray{T,2}, ::PadZero2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = CuArray{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] = (-u[end,:])/h[1]
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] = (-u[:,end])/h[2]
+    return v
+end
+
+function gradient_2D(u::Array{T,2}, ::PadCopy2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = Array{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] .= T(0)
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] .= T(0)
+    return v
+end
+
+function gradient_2D(u::CuArray{T,2}, ::PadCopy2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = CuArray{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] .= T(0)
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] .= T(0)
+    return v
+end
+
+function gradient_2D(u::Array{T,2}, ::PadPeriodic2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = Array{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] = (u[1,:]-u[end,:])/h[1]
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] = (u[:,1]-u[:,end])/h[2]
+    return v
+end
+
+function gradient_2D(u::CuArray{T,2}, ::PadPeriodic2D{T}; h::Tuple{T,T}=(T(1),T(1))) where T
+    v = CuArray{T,3}(undef, size(u)..., 2)
+    v[1:end-1,:,1] = (u[2:end,:]-u[1:end-1,:])/h[1]
+    v[end,    :,1] = (u[1,:]-u[end,:])/h[1]
+    v[:,1:end-1,2] = (u[:,2:end]-u[:,1:end-1])/h[2]
+    v[:,end,    2] = (u[:,1]-u[:,end])/h[2]
+    return v
+end
+
+gradient_2D(u::AbstractArray{T,2}; p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1), h::Tuple{T,T}=(T(1),T(1))) where T = gradient_2D(u, p; h=h)

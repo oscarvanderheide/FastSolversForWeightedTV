@@ -1,7 +1,7 @@
 module FastSolversForWeightedTV
 
 # Modules
-using LinearAlgebra, NNlib, CUDA, Flux, AbstractLinearOperators
+using LinearAlgebra, NNlib, CUDA, Flux, AbstractLinearOperators, Roots
 
 # Gradient operator
 include("./padding.jl")
@@ -22,8 +22,5 @@ include("./fista_solver.jl")
 # Convex set
 include("./convex_sets.jl")
 include("./convex_sets_utils.jl")
-
-# # L21 solvers (general)
-# include("./proxyl21_solver.jl")
 
 end

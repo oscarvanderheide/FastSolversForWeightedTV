@@ -16,13 +16,11 @@ gfun = ell_norm(Float32, 2, 1)
 
 # Proxy || ||_{2,1} norm
 λ = 0.1f0
-gval, x = proxy(y, λ, gfun)
-@test gval ≈ norm21(y) rtol=1f-3
+x = proxy(y, λ, gfun)
 ptnorm_y = ptnorm2(y)
 @test x ≈ (ptnorm_y.-λ).*y./ptnorm_y.*(ptnorm_y .>= λ) rtol=1f-3
 
 # Multiplication with scalar
-gval1, x1 = proxy(y, 3f0*λ, gfun)
-gval2, x2 = proxy(y, λ,     3f0*gfun)
-@test gval1 ≈ gval2 rtol=1f-3
+x1 = proxy(y, 3f0*λ, gfun)
+x2 = proxy(y, λ,     3f0*gfun)
 @test x1 ≈ x2 rtol=1f-3

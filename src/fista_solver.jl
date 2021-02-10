@@ -40,21 +40,23 @@ https://www.ceremade.dauphine.fr/~carlier/FISTA
 function solverFISTA!(fun::DiffPlusProxFunction{T,N}, x0::CuArray{T,N}, opt::OptFISTA{T}) where {T,N}
 
     # Initialization
-    x = similar(x0)  # momentum pre-allocation
-    ∇f = similar(x0) # gradient pre-allocation
+    x = similar(x0)    # momentum pre-allocation
+    xtmp = similar(x0) # temporary pre-allocation
+    ∇f = similar(x0)   # gradient pre-allocation
     t0 = T(1)
     flag_conv = false
 
     # Optimization loop
     for i = 1:opt.niter
 
-        fval = grad!(fun.f, x0, ∇f)                            # Compute gradient
-        proxy!(x0-opt.steplength*∇f, opt.steplength, fun.g, x) # Compute proxy
-        if opt.nesterov                                        # > Nesterov two-step update:
-            t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2))             # - compute dynamic step size
-            x .= x+(t0-T(1))/t*(x-x0)                          # - update momentum
-            t0 = t                                             # - update step size
-        end                                                    # <
+        fval = grad!(fun.f, x0, ∇f)                # Compute gradient
+        xtmp .= x0-opt.steplength*∇f
+        proxy!(xtmp, opt.steplength, fun.g, x)     # Compute proxy
+        if opt.nesterov                            # > Nesterov two-step update:
+            t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2)) # - compute dynamic step size
+            x .= x+(t0-T(1))/t*(x-x0)              # - update momentum
+            t0 = t                                 # - update step size
+        end                                        # <
 
         # Update unknowns
         opt.tol_x !== nothing && (flag_conv = norm(x-x0)<=opt.tol_x*norm(x0))
@@ -82,17 +84,18 @@ function solverFISTA!(fun::DiffPlusProxFunction{T,N}, x0::Array{T,N}, opt::OptFI
     # Optimization loop
     for i = 1:opt.niter
 
-        fval = grad!(fun.f, x0, ∇f)                            # Compute gradient
+        fval = grad!(fun.f, x0, ∇f)                # Compute gradient
         xtmp .= x0-opt.steplength*∇f
-        proxy!(xtmp, opt.steplength, fun.g, x) # Compute proxy
-        if opt.nesterov                                        # > Nesterov two-step update:
-            t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2))             # - compute dynamic step size
+        proxy!(xtmp, opt.steplength, fun.g, x)     # Compute proxy
+        if opt.nesterov                            # > Nesterov two-step update:
+            t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2)) # - compute dynamic step size
             w = (t0-T(1))/t
-            for i = 1:length(x)
-                x[i] = x[i]+w*(x[i]-x0[i])                          # - update momentum
-            end
-            t0 = t                                             # - update step size
-        end                                                    # <
+            # for i = 1:length(x)
+            #     x[i] = x[i]+w*(x[i]-x0[i])                          # - update momentum
+            # end
+            x .= x+w*(x-x0)
+            t0 = t                                 # - update step size
+        end                                        # <
 
         # Update unknowns
         opt.tol_x !== nothing && (flag_conv = norm(x-x0)<=opt.tol_x*norm(x0))

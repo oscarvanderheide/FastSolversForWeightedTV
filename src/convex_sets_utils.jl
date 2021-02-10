@@ -17,10 +17,11 @@ ell_ball(p1::Number, p2::Number, ε::T; eps::T=T(0)) where T = ℓball_2D{T,p1,p
 
 function project!(p::Array{T,3}, C::ℓball_2D{T,2,Inf}, q::Array{T,3}) where T
     ptn = ptnorm2(p; eps=C.eps)
-    nx, ny, _ = size(p)
-    @inbounds for i=1:nx, j=1:ny, k=1:2
-        q[i,j,k] = p[i,j,k]*((ptn[i,j]>=C.ε)/ptn[i,j]+(ptn[i,j]<C.ε))
-    end
+    # nx, ny, _ = size(p)
+    # @inbounds for i=1:nx, j=1:ny, k=1:2
+    #     q[i,j,k] = p[i,j,k]*((ptn[i,j]>=C.ε)/ptn[i,j]+(ptn[i,j]<C.ε))
+    # end
+    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
     return q
 end
 
@@ -33,15 +34,17 @@ end
 ## 2,1
 
 function project!(p::Array{T,3}, C::ℓball_2D{T,2,1}, q::Array{T,3}) where T
-    for i = 1:length(q)
-        q[i] = p[i]/C.ε
-    end
+    # @inbounds for i = 1:length(q)
+    #     q[i] = p[i]/C.ε
+    # end
+    q .= p./C.ε
     ptn = ptnorm2(q; eps=C.eps)
     λ = pareto_search_proj21(ptn)
     proxy!(q, λ, ell_norm(T,2,1;eps=C.eps), q; ptn=ptn)
-    for i = 1:length(q)
-        q[i] = C.ε*q[i]
-    end
+    # @inbounds for i = 1:length(q)
+    #     q[i] = C.ε*q[i]
+    # end
+    q .= C.ε*q
     return q
 end
 
@@ -60,11 +63,15 @@ function pareto_search_proj21(ptn::AbstractArray{T,2}) where T
 end
 
 function objfun_paretosearch_proj21(δ::T, ptn::Array{T,2}) where T
-    f = T(1)
-    @inbounds for i=1:length(ptn)
-        ptn[i]>=δ && (f -= ptn[i]-δ)
-    end
-    return f
+    # f = T(1)
+    # @inbounds for i=1:length(ptn)
+    #     ptn[i]>=δ && (f -= ptn[i]-δ)
+    # end
+    # ptn_ = ptn[ptn.>=δ]
+    # ~isempty(ptn_) ? (return T(1)-sum(ptn_.-δ)) : (return T(1))
+    # return f
+    ptn_ = ptn[ptn.>=δ]
+    return T(1)-sum(ptn_)+length(ptn_)*δ
 end
 
 function objfun_paretosearch_proj21(δ::T, ptn::CuArray{T,2}) where T

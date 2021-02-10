@@ -7,8 +7,8 @@ n = (1024, 2048)
 h = (abs(randn(T)), abs(randn(T)))
 
 # Operator
-∇ = gradient_2D(n, h; gpu=false)
-∇_gpu = gradient_2D(n, h; gpu=true)
+∇ = gradient_2D(n; h=h, gpu=false)
+∇_gpu = gradient_2D(n; h=h, gpu=true)
 
 # Inputs
 u_cpu = randn(T, n)

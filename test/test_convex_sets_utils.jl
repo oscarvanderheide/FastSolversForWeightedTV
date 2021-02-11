@@ -28,7 +28,7 @@ x1__ = x1.*(x1.>=0f0)
 # Projection on l2Inf ball
 C = ell_ball(2,Inf,1f0)
 y_ = project(y, C)
-ptn_y = ptnorm2(y;eps=0f0)
+ptn_y = ptnorm2(y)
 y__ = y.*(ptn_y .<= 1f0)+y./ptn_y.*(ptn_y .>= 1f0)
 @test y_ ≈ y__ rtol=1f-3
 

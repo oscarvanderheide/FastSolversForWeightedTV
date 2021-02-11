@@ -5,6 +5,8 @@ using LinearAlgebra, NNlib, CUDA, Flux, AbstractLinearOperators, Roots
 
 # Gradient operator
 include("./padding.jl")
+include("./norm_utils.jl")
+include("./gradient_utils.jl")
 include("./gradient.jl")
 
 # Differentiable functions
@@ -12,7 +14,6 @@ include("./differentiable_type.jl")
 include("./differentiable_utils.jl")
 
 # Proximable functions
-include("./norm_utils.jl")
 include("./proximable_type.jl")
 include("./proximable_utils.jl")
 

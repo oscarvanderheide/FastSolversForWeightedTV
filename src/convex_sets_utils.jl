@@ -1,7 +1,7 @@
 #: Convex set utilities
 
 
-export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, A21ball_2D, tv_ball_2D
+export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, A21ball_2D, tv_ball_2D, structtv_ball_2D
 
 
 # ℓball_2D{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
@@ -10,23 +10,18 @@ export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, b
 
 struct ℓball_2D{T,p1,p2}<:ConvexSet{T,3}
     ε::T
-    eps::T
 end
 
-ell_ball(p1::Number, p2::Number, ε::T; eps::T=T(0)) where T = ℓball_2D{T,p1,p2}(ε, eps)
+ell_ball(p1::Number, p2::Number, ε::T) where T = ℓball_2D{T,p1,p2}(ε)
 
 function project!(p::Array{T,3}, C::ℓball_2D{T,2,Inf}, q::Array{T,3}) where T
-    ptn = ptnorm2(p; eps=C.eps)
-    # nx, ny, _ = size(p)
-    # @inbounds for i=1:nx, j=1:ny, k=1:2
-    #     q[i,j,k] = p[i,j,k]*((ptn[i,j]>=C.ε)/ptn[i,j]+(ptn[i,j]<C.ε))
-    # end
+    ptn = ptnorm2(p)
     q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
     return q
 end
 
 function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,Inf}, q::CuArray{T,3}) where T
-    ptn = ptnorm2(p; eps=C.eps)
+    ptn = ptnorm2(p)
     q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
     return q
 end
@@ -34,25 +29,19 @@ end
 ## 2,1
 
 function project!(p::Array{T,3}, C::ℓball_2D{T,2,1}, q::Array{T,3}) where T
-    # @inbounds for i = 1:length(q)
-    #     q[i] = p[i]/C.ε
-    # end
     q .= p./C.ε
-    ptn = ptnorm2(q; eps=C.eps)
+    ptn = ptnorm2(q)
     λ = pareto_search_proj21(ptn)
-    proxy!(q, λ, ell_norm(T,2,1;eps=C.eps), q; ptn=ptn)
-    # @inbounds for i = 1:length(q)
-    #     q[i] = C.ε*q[i]
-    # end
+    proxy!(q, λ, ell_norm(T,2,1), q; ptn=ptn)
     q .= C.ε*q
     return q
 end
 
 function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,1}, q::CuArray{T,3}) where T
     q .= p./C.ε
-    ptn = ptnorm2(q; eps=C.eps)
+    ptn = ptnorm2(q)
     λ = pareto_search_proj21(ptn)
-    proxy!(q, λ, ell_norm(T,2,1;eps=C.eps), q; ptn=ptn)
+    proxy!(q, λ, ell_norm(T,2,1), q; ptn=ptn)
     q .= C.ε*q
     return q
 end
@@ -63,43 +52,30 @@ function pareto_search_proj21(ptn::AbstractArray{T,2}) where T
 end
 
 function objfun_paretosearch_proj21(δ::T, ptn::Array{T,2}) where T
-    # f = T(1)
-    # @inbounds for i=1:length(ptn)
-    #     ptn[i]>=δ && (f -= ptn[i]-δ)
-    # end
-    # ptn_ = ptn[ptn.>=δ]
-    # ~isempty(ptn_) ? (return T(1)-sum(ptn_.-δ)) : (return T(1))
-    # return f
     ptn_ = ptn[ptn.>=δ]
     return T(1)-sum(ptn_)+length(ptn_)*δ
 end
 
 function objfun_paretosearch_proj21(δ::T, ptn::CuArray{T,2}) where T
-    # ptn_ = ptn[ptn.>=δ]
-    # ~isempty(ptn_) ? (return T(1)-sum(ptn_.-δ)) : (return T(1))
     ptn_ = ptn[ptn.>=δ]
     return T(1)-sum(ptn_)+length(ptn_)*δ
 end
 
 
-# A21-ball & TV
+# A21-ball
 
 struct A21ball_2D{T}<:ConvexSet{T,2}
     A::AbstractLinearOperator
     ε::T
-    eps::T
 end
 
-function project!(y::DT, C::A21ball_2D{T}, x::DT; opt::OptimOptions{T}=opt_fista(), dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+function project!(y::DT, C::A21ball_2D{T}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
 
-    # Least-squares misfit
-    f = leastsquares_misfit(adjoint(C.A), y)
-
-    # 2-Inf norm
-    g = ell_norm(T,2,Inf; eps=C.eps)
+    # Minimization function
+    f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,Inf)
 
     # Minimization
-    p = minimize(f+C.ε*g, opt)
+    p = minimize(f, opt)
 
     # Dual to primal solution
     x .= y-adjoint(C.A)*p
@@ -108,9 +84,21 @@ function project!(y::DT, C::A21ball_2D{T}, x::DT; opt::OptimOptions{T}=opt_fista
 
 end
 
-project(y::AbstractArray{T,2}, C::A21ball_2D{T}; opt::OptimOptions{T}=opt_fista(), dual_est::Bool=false) where T = project!(y, C, similar(y); opt=opt, dual_est=dual_est)
+project(y::AbstractArray{T,2}, C::A21ball_2D{T}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
 
-tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), eps::T=T(0), gpu::Bool=false) where T = A21ball_2D{T}(gradient_2D(n; h=h, gpu=gpu), ε, eps)
+
+# TV ball
+
+tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = A21ball_2D{T}(gradient_2D(n; h=h, gpu=gpu), ε)
+
+
+# Structural-TV ball
+
+function structtv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0)) where T
+    ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
+    P = projvectorfield_2D(∇*u; η=η)
+    return A21ball_2D{T}(P*∇, ε)
+end
 
 
 # Box constraints

@@ -11,14 +11,14 @@ abstract type OptimOptions{T} end
 # Options type for FISTA
 
 mutable struct OptFISTA{T}<:OptimOptions{T}
-    initial_estimate::Union{Nothing,AbstractArray{T}}
+    initial_estimate::AbstractArray{T}
     steplength::T
     niter::Int64
     tol_x::Union{Nothing,T}
     nesterov::Bool
 end
 
-opt_fista(; initial_estimate::Union{Nothing,AbstractArray{T,N}}=nothing, steplength::T=T(1), niter::Int64=1000, tol_x::Union{Nothing,T}=nothing, nesterov::Bool=true) where {T,N} = OptFISTA{T}(initial_estimate, steplength, niter, tol_x, nesterov)
+opt_fista(; initial_estimate::AbstractArray{T,N}, steplength::T=T(1), niter::Int64=1000, tol_x::Union{Nothing,T}=nothing, nesterov::Bool=true) where {T,N} = OptFISTA{T}(initial_estimate, steplength, niter, tol_x, nesterov)
 
 
 # Generic FISTA solver
@@ -31,10 +31,10 @@ min_x f(x)+g(x)
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA
 """
-function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::Union{Nothing,DT}, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x::DT) where {T,N,DT<:AbstractArray{T,N}}
+function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
-    x0 = similar(x); initial_estimate === nothing ? (x0 .= T(0)) : (x0 .= initial_estimate)
+    x0 = copy(initial_estimate)
     xtmp = similar(x)
     t0 = T(1)
     flag_conv = false

@@ -1,30 +1,24 @@
 #: Optimization functions and solvers
 
-export DiffPlusProxFunction, Options, OptFISTA, optFISTA, solverFISTA!, solverFISTA
+export OptimOptions, OptFISTA, opt_fista, minimize, minimize!, minimize_fista!
 
 
-# Optimization type
+# Optimization abstract type
 
-struct DiffPlusProxFunction{T,N}
-    f::DifferentiableFunction{T,N}
-    g::ProximableFunction{T,N}
-end
-
-Base.:+(f::DifferentiableFunction{T,N}, g::ProximableFunction{T,N}) where {T,N} = DiffPlusProxFunction{T,N}(f, g)
+abstract type OptimOptions{T} end
 
 
 # Options type for FISTA
 
-abstract type Options{T} end
-
-struct OptFISTA{T}<:Options{T}
+mutable struct OptFISTA{T}<:OptimOptions{T}
+    initial_estimate::Union{Nothing,AbstractArray{T}}
     steplength::T
     niter::Int64
     tol_x::Union{Nothing,T}
     nesterov::Bool
 end
 
-optFISTA(; steplength::T=T(1), niter::Int64=100, tol_x::Union{Nothing,T}=nothing, nesterov::Bool=true) where T = OptFISTA{T}(steplength, niter, tol_x, nesterov)
+opt_fista(; initial_estimate::Union{Nothing,AbstractArray{T,N}}=nothing, steplength::T=T(1), niter::Int64=1000, tol_x::Union{Nothing,T}=nothing, nesterov::Bool=true) where {T,N} = OptFISTA{T}(initial_estimate, steplength, niter, tol_x, nesterov)
 
 
 # Generic FISTA solver
@@ -37,33 +31,31 @@ min_x f(x)+g(x)
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA
 """
-function solverFISTA!(fun::DiffPlusProxFunction{T,N}, x0::CuArray{T,N}, opt::OptFISTA{T}) where {T,N}
+function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::Union{Nothing,DT}, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
-    x = similar(x0)    # momentum pre-allocation
-    xtmp = similar(x0) # temporary pre-allocation
-    ∇f = similar(x0)   # gradient pre-allocation
+    x0 = similar(x); initial_estimate === nothing ? (x0 .= T(0)) : (x0 .= initial_estimate)
+    xtmp = similar(x)
     t0 = T(1)
     flag_conv = false
 
     # Optimization loop
-    for i = 1:opt.niter
+    for i = 1:niter
 
-        fval = grad!(fun.f, x0, ∇f)                # Compute gradient
-        xtmp .= x0-opt.steplength*∇f
-        proxy!(xtmp, opt.steplength, fun.g, x)     # Compute proxy
-        if opt.nesterov                            # > Nesterov two-step update:
+        fval = grad!(fun.f, x0, xtmp)              # Compute gradient
+        xtmp .= x0-steplength*xtmp                 # Gradient update
+        proxy!(xtmp, steplength, fun.g, x)         # Compute proxy
+        if nesterov                                # > Nesterov two-step update:
             t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2)) # - compute dynamic step size
             x .= x+(t0-T(1))/t*(x-x0)              # - update momentum
             t0 = t                                 # - update step size
         end                                        # <
 
-        # Update unknowns
-        opt.tol_x !== nothing && (flag_conv = norm(x-x0)<=opt.tol_x*norm(x0))
-        x0 .= x
-        
         # Convergence check
-        flag_conv && break
+        tol_x !== nothing && (norm(x-x0)<=tol_x*norm(x0)) && break
+
+        # Update unknowns
+        i < niter && (x0 .= x)
 
     end
 
@@ -72,46 +64,6 @@ function solverFISTA!(fun::DiffPlusProxFunction{T,N}, x0::CuArray{T,N}, opt::Opt
 
 end
 
-function solverFISTA!(fun::DiffPlusProxFunction{T,N}, x0::Array{T,N}, opt::OptFISTA{T}) where {T,N}
+minimize!(fun::DiffPlusProxFunction{T,N}, opt::OptFISTA{T}, x::AbstractArray{T,N}) where {T,N} = minimize_fista!(fun, opt.initial_estimate, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
 
-    # Initialization
-    x = similar(x0)  # momentum pre-allocation
-    xtmp = similar(x0)  # momentum pre-allocation
-    ∇f = similar(x0) # gradient pre-allocation
-    t0 = T(1)
-    flag_conv = false
-
-    # Optimization loop
-    for i = 1:opt.niter
-
-        fval = grad!(fun.f, x0, ∇f)                # Compute gradient
-        xtmp .= x0-opt.steplength*∇f
-        proxy!(xtmp, opt.steplength, fun.g, x)     # Compute proxy
-        if opt.nesterov                            # > Nesterov two-step update:
-            t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2)) # - compute dynamic step size
-            w = (t0-T(1))/t
-            # for i = 1:length(x)
-            #     x[i] = x[i]+w*(x[i]-x0[i])                          # - update momentum
-            # end
-            x .= x+w*(x-x0)
-            t0 = t                                 # - update step size
-        end                                        # <
-
-        # Update unknowns
-        opt.tol_x !== nothing && (flag_conv = norm(x-x0)<=opt.tol_x*norm(x0))
-        x0 .= x
-        
-        # Convergence check
-        flag_conv && break
-
-    end
-
-    # Return output
-    return x
-
-end
-
-function solverFISTA(fun::DiffPlusProxFunction{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA{T}) where {T,N}
-    x0 = copy(x0)
-    return solverFISTA!(fun, x0, opt)
-end
+minimize(fun::OptimizableFunction{T,N}, opt::OptimOptions{T}) where {T,N} = minimize!(fun, opt, similar(opt.initial_estimate))

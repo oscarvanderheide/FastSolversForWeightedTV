@@ -16,6 +16,9 @@ include("./norm_utils.jl")
 include("./proximable_type.jl")
 include("./proximable_utils.jl")
 
+# Optimizable functions
+include("./optim_type.jl")
+
 # FISTA solver
 include("./fista_solver.jl")
 

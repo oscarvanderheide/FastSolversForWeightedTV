@@ -1,7 +1,7 @@
 #: Convex set utilities
 
 
-export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, A21ball_2D, TVball_2D
+export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, A21ball_2D, tv_ball_2D
 
 
 # ℓball_2D{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
@@ -87,29 +87,30 @@ end
 struct A21ball_2D{T}<:ConvexSet{T,2}
     A::AbstractLinearOperator
     ε::T
-    opt::Options{T}
     eps::T
 end
 
-function project!(y::Array{T,2}, C::A21ball_2D{T}, x::Array{T,2}; p0::Union{Nothing,Array{T,3}}=nothing) where T
+function project!(y::DT, C::A21ball_2D{T}, x::DT; opt::OptimOptions{T}=opt_fista(), dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+
+    # Least-squares misfit
     f = leastsquares_misfit(adjoint(C.A), y)
-    g = ell_norm(T, 2, Inf; eps=C.eps)
-    p0 === nothing && (p0 = zeros(T, size(y)..., 2))
-    solverFISTA!(f+C.ε*g, p0, C.opt)
-    x .= y-adjoint(C.A)*p0
-    return x
+
+    # 2-Inf norm
+    g = ell_norm(T,2,Inf; eps=C.eps)
+
+    # Minimization
+    p = minimize(f+C.ε*g, opt)
+
+    # Dual to primal solution
+    x .= y-adjoint(C.A)*p
+
+    dual_est ? (return x, p) : (return x)
+
 end
 
-function project!(y::CuArray{T,2}, C::A21ball_2D{T}, x::CuArray{T,2}; p0::Union{Nothing,CuArray{T,3}}=nothing) where T
-    f = leastsquares_misfit(adjoint(C.A), y)
-    g = ell_norm(T, 2, Inf; eps=C.eps)
-    p0 === nothing && (p0 = CUDA.zeros(T, size(y)..., 2))
-    solverFISTA!(f+C.ε*g, p0, C.opt)
-    x .= y-adjoint(C.A)*p0
-    return x
-end
+project(y::AbstractArray{T,2}, C::A21ball_2D{T}; opt::OptimOptions{T}=opt_fista(), dual_est::Bool=false) where T = project!(y, C, similar(y); opt=opt, dual_est=dual_est)
 
-TVball_2D(n::Tuple{Int64,Int64}, ε::T, opt::Options{T}; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, eps=T(0)) where T = A21ball_2D{T}(gradient_2D(n; h=h, gpu=gpu), ε, opt, eps)
+tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), eps::T=T(0), gpu::Bool=false) where T = A21ball_2D{T}(gradient_2D(n; h=h, gpu=gpu), ε, eps)
 
 
 # Box constraints

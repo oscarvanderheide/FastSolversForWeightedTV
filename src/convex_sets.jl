@@ -11,10 +11,7 @@ Expected behavior for convex sets: y = project!(x, C, y), y = Π_C(x)
 """
 abstract type ConvexSet{T,N} end
 
-function project(x::AbstractArray{T,N}, C::ConvexSet{T,N}) where {T,N}
-    y = similar(x)
-    return project!(x, C, y)
-end
+project(x::AbstractArray{T,N}, C::ConvexSet{T,N}) where {T,N} = project!(x, C, similar(x))
 
 
 # Concrete types

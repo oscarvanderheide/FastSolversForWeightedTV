@@ -1,30 +1,16 @@
 #: Convex set utilities
 
 
-export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, A21ball_2D, tv_ball_2D, structtv_ball_2D
+export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, Aball_2D, tv_ball_2D, tsqv_ball_2D, bv_ball_2D
 
 
 # ℓball_2D{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
-
-## 2,Inf
 
 struct ℓball_2D{T,p1,p2}<:ConvexSet{T,3}
     ε::T
 end
 
 ell_ball(p1::Number, p2::Number, ε::T) where T = ℓball_2D{T,p1,p2}(ε)
-
-function project!(p::Array{T,3}, C::ℓball_2D{T,2,Inf}, q::Array{T,3}) where T
-    ptn = ptnorm2(p)
-    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
-    return q
-end
-
-function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,Inf}, q::CuArray{T,3}) where T
-    ptn = ptnorm2(p)
-    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
-    return q
-end
 
 ## 2,1
 
@@ -61,15 +47,38 @@ function objfun_paretosearch_proj21(δ::T, ptn::CuArray{T,2}) where T
     return T(1)-sum(ptn_)+length(ptn_)*δ
 end
 
+## 2,2
 
-# A21-ball
+function project!(p::DT, C::ℓball_2D{T,2,2}, q::DT) where {T,DT<:AbstractArray{T,3}}
+    q .= C.ε*p./norm22(p)
+    return q
+end
 
-struct A21ball_2D{T}<:ConvexSet{T,2}
+## 2,Inf
+
+function project!(p::Array{T,3}, C::ℓball_2D{T,2,Inf}, q::Array{T,3}) where T
+    ptn = ptnorm2(p)
+    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
+    return q
+end
+
+function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,Inf}, q::CuArray{T,3}) where T
+    ptn = ptnorm2(p)
+    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
+    return q
+end
+
+
+# A-ball
+
+struct Aball_2D{T,p1,p2}<:ConvexSet{T,2}
     A::AbstractLinearOperator
     ε::T
 end
 
-function project!(y::DT, C::A21ball_2D{T}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+## 2, 1
+
+function project!(y::DT, C::Aball_2D{T,2,1}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
 
     # Minimization function
     f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,Inf)
@@ -84,20 +93,55 @@ function project!(y::DT, C::A21ball_2D{T}, opt::OptimOptions{T}, x::DT; dual_est
 
 end
 
-project(y::AbstractArray{T,2}, C::A21ball_2D{T}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
+project(y::AbstractArray{T,2}, C::Aball_2D{T,2,1}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
+
+## 2, 2
+
+function project!(y::DT, C::Aball_2D{T,2,2}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+
+    # Minimization function
+    f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,2)
+
+    # Minimization
+    p = minimize(f, opt)
+
+    # Dual to primal solution
+    x .= y-adjoint(C.A)*p
+
+    dual_est ? (return x, p) : (return x)
+
+end
+
+project(y::AbstractArray{T,2}, C::Aball_2D{T,2,2}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
 
 
-# TV ball
+# TV-related ball
 
-tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = A21ball_2D{T}(gradient_2D(n; h=h, gpu=gpu), ε)
+tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = Aball_2D{T,2,1}(gradient_2D(n; h=h, gpu=gpu), ε)
+
+tsqv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = Aball_2D{T,2,2}(gradient_2D(n; h=h, gpu=gpu), ε)
+
+bv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = Aball_2D{T,2,Inf}(gradient_2D(n; h=h, gpu=gpu), ε)
 
 
-# Structural-TV ball
+# Structural TV-related ball
 
-function structtv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0)) where T
+function tv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0)) where T
     ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
     P = projvectorfield_2D(∇*u; η=η)
-    return A21ball_2D{T}(P*∇, ε)
+    return Aball_2D{T,2,1}(P*∇, ε)
+end
+
+function tsqv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0)) where T
+    ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
+    P = projvectorfield_2D(∇*u; η=η)
+    return Aball_2D{T,2,2}(P*∇, ε)
+end
+
+function bv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0)) where T
+    ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
+    P = projvectorfield_2D(∇*u; η=η)
+    return Aball_2D{T,2,Inf}(P*∇, ε)
 end
 
 

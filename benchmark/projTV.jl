@@ -16,5 +16,4 @@ C = tv_ball_2D(n, ε; gpu=flag_gpu)
 # Projection
 p0 = zeros(Float32, n..., 2); flag_gpu && (p0 = p0 |> gpu)
 opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=1000, nesterov=true)
-@benchmark x, p = project(y, C, opt; dual_est=true) |> cpu
-y = y |> cpu
+@benchmark x, p = project(y, C, opt; dual_est=true)

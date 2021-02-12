@@ -1,6 +1,6 @@
 #: Utilities for computing composite norms
 
-export ptdot, ptnorm1, ptnorm2, ptnorm2_reg, ptnormInf, norm21, norm22, norm2Inf, normA21, normTV, normStructTV
+export ptdot, ptnorm1, ptnorm2, ptnorm2_reg, ptnormInf, norm21, norm22, norm2Inf, normA21, normTV, normTsqV
 
 
 # Point-wise dot/norms for vector fields
@@ -36,8 +36,10 @@ end
 norm2Inf(v::CuArray{T,3}) where T = maximum(ptnorm2(v))
 
 
-# TV norm
+# TV-related norm
 
 normA21(x::DT, A::AbstractLinearOperator{DT,RT}) where {T,DT<:AbstractArray{T,2},RT<:AbstractArray{T,3}} = norm21(A*x)
 normTV(x::AbstractArray{T,2}; h::Tuple{T,T}=(T(1),T(1)), p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1)) where T = norm21(gradient_2D(x, p; h=h))
-normStructTV(x::DT, y::DT; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0), p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1)) where {T,DT<:AbstractArray{T,2}} = norm21(projvectorfield_2D(gradient_2D(x, p; h=h), gradient_2D(y, p; h=h); η=η))
+normTV(x::DT, y::DT; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0), p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1)) where {T,DT<:AbstractArray{T,2}} = norm21(projvectorfield_2D(gradient_2D(x, p; h=h), gradient_2D(y, p; h=h); η=η))
+normTsqV(x::AbstractArray{T,2}; h::Tuple{T,T}=(T(1),T(1)), p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1)) where T = norm22(gradient_2D(x, p; h=h))
+normTsqV(x::DT, y::DT; h::Tuple{T,T}=(T(1),T(1)), η::T=T(0), p::Padding2D{T}=PadPeriodic2D{T}(0,1,0,1)) where {T,DT<:AbstractArray{T,2}} = norm22(projvectorfield_2D(gradient_2D(x, p; h=h), gradient_2D(y, p; h=h); η=η))

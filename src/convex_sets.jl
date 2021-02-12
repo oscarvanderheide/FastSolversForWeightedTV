@@ -40,10 +40,22 @@ end
 """
 Indicator function δ_C(x) = {0, if x ∈ C; ∞, otherwise} for convex sets C
 """
-struct Indicator{T,N}<:ProximableFunction{T,N}
+struct IndicatorConvexSet{T,N}<:ProximableFunction{T,N}
     C::ConvexSet{T,N}
 end
 
-proxy!(y::DT, ::Any, δ::Indicator{T,N}, x::DT) where {T,N,DT<:AbstractArray{T,N}} = project!(y, δ.C, x)
+proxy!(y::DT, ::Any, δ::IndicatorConvexSet{T,N}, x::DT) where {T,N,DT<:AbstractArray{T,N}} = project!(y, δ.C, x)
 
-indicator(C::ConvexSet{T,N}) where {T,N} = Indicator{T,N}(C)
+indicator(C::ConvexSet{T,N}) where {T,N} = IndicatorConvexSet{T,N}(C)
+
+"""
+Indicator function δ_C(x) = {0, if g(x)<=ε ; ∞, otherwise}
+"""
+struct IndicatorProxy{T,N}<:ProximableFunction{T,N}
+    g::ProximableFunction{T,N}
+    ε::T
+end
+
+proxy!(y::DT, ::Any, δ::IndicatorProxy{T,N}, x::DT) where {T,N,DT<:AbstractArray{T,N}} = project!(y, δ.ε, δ.g, x)
+
+indicator(g::ProximableFunction{T,N}, ε::T) where {T,N} = IndicatorProxy{T,N}(g, ε)

@@ -1,4 +1,4 @@
-using LinearAlgebra, FastSolversForWeightedTV, AbstractLinearOperators, Test
+using LinearAlgebra, Flux, FastSolversForWeightedTV, AbstractLinearOperators, Test
 
 flag_gpu = true
 # flag_gpu = false

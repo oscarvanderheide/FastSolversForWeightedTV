@@ -20,12 +20,14 @@ x, p = project(y, C, opt; dual_est=true) |> cpu
 y = y |> cpu
 
 # Plot
+vmin=min(y...)
+vmax=max(y...)
 close("all")
 figure()
 subplot(1,2,1)
-imshow(y; cmap="gray")
+imshow(y; cmap="gray", vmin=vmin, vmax=vmax)
 title("Original")
 subplot(1,2,2)
-imshow(x; cmap="gray")
+imshow(x; cmap="gray", vmin=vmin, vmax=vmax)
 title(string("TV projection, ", L"niter = ", string(opt.niter), ", ", L"\varepsilon = ", string(ε_rel)))
 savefig("./plots/TVproj.png", dpi=300, transparent=false, bbox_inches="tight")

@@ -12,61 +12,9 @@ end
 
 ell_ball(p1::Number, p2::Number, ε::T) where T = ℓball_2D{T,p1,p2}(ε)
 
-## 2,1
-
-function project!(p::Array{T,3}, C::ℓball_2D{T,2,1}, q::Array{T,3}) where T
-    q .= p./C.ε
-    ptn = ptnorm2(q)
-    λ = pareto_search_proj21(ptn)
-    proxy!(q, λ, ell_norm(T,2,1), q; ptn=ptn)
-    q .= C.ε*q
-    return q
-end
-
-function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,1}, q::CuArray{T,3}) where T
-    q .= p./C.ε
-    ptn = ptnorm2(q)
-    λ = pareto_search_proj21(ptn)
-    proxy!(q, λ, ell_norm(T,2,1), q; ptn=ptn)
-    q .= C.ε*q
-    return q
-end
-
-function pareto_search_proj21(ptn::AbstractArray{T,2}) where T
-    obj_fun = δ->objfun_paretosearch_proj21(δ, ptn)
-    return find_zero(obj_fun, (T(0), maximum(ptn)))
-end
-
-function objfun_paretosearch_proj21(δ::T, ptn::Array{T,2}) where T
-    ptn_ = ptn[ptn.>=δ]
-    return T(1)-sum(ptn_)+length(ptn_)*δ
-end
-
-function objfun_paretosearch_proj21(δ::T, ptn::CuArray{T,2}) where T
-    ptn_ = ptn[ptn.>=δ]
-    return T(1)-sum(ptn_)+length(ptn_)*δ
-end
-
-## 2,2
-
-function project!(p::DT, C::ℓball_2D{T,2,2}, q::DT) where {T,DT<:AbstractArray{T,3}}
-    q .= C.ε*p./norm22(p)
-    return q
-end
-
-## 2,Inf
-
-function project!(p::Array{T,3}, C::ℓball_2D{T,2,Inf}, q::Array{T,3}) where T
-    ptn = ptnorm2(p)
-    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
-    return q
-end
-
-function project!(p::CuArray{T,3}, C::ℓball_2D{T,2,Inf}, q::CuArray{T,3}) where T
-    ptn = ptnorm2(p)
-    q .= p.*((ptn.>=C.ε)./ptn+(ptn.<C.ε))
-    return q
-end
+project!(p::DT, C::ℓball_2D{T,2,1},   q::DT) where {T,DT<:AbstractArray{T,3}} = project!(p, C.ε, ell_norm(T,2,1),   q)
+project!(p::DT, C::ℓball_2D{T,2,2},   q::DT) where {T,DT<:AbstractArray{T,3}} = project!(p, C.ε, ell_norm(T,2,2),   q)
+project!(p::DT, C::ℓball_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}} = project!(p, C.ε, ell_norm(T,2,Inf), q)
 
 
 # A-ball
@@ -76,12 +24,11 @@ struct Aball_2D{T,p1,p2}<:ConvexSet{T,2}
     ε::T
 end
 
-## 2, 1
-
-function project!(y::DT, C::Aball_2D{T,2,1}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+function project!(y::DT, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
 
     # Minimization function
-    f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,Inf)
+    # f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,conjugate_exp(p2))
+    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_ball(2,p2, C.ε)))
 
     # Minimization
     p = minimize(f, opt)
@@ -93,26 +40,13 @@ function project!(y::DT, C::Aball_2D{T,2,1}, opt::OptimOptions{T}, x::DT; dual_e
 
 end
 
-project(y::AbstractArray{T,2}, C::Aball_2D{T,2,1}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
+project(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}; dual_est::Bool=false) where {T,p2} = project!(y, C, opt, similar(y); dual_est=dual_est)
 
-## 2, 2
-
-function project!(y::DT, C::Aball_2D{T,2,2}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
-
-    # Minimization function
-    f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,2)
-
-    # Minimization
-    p = minimize(f, opt)
-
-    # Dual to primal solution
-    x .= y-adjoint(C.A)*p
-
-    dual_est ? (return x, p) : (return x)
-
-end
-
-project(y::AbstractArray{T,2}, C::Aball_2D{T,2,2}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
+# function conjugate_exp(p2::Number)::Number
+#     p2 == 1   && (return Inf)
+#     p2 == 2   && (return 2)
+#     p2 == Inf && (return 1)
+# end
 
 
 # TV-related ball
@@ -142,6 +76,47 @@ function bv_ball_2D(u::AbstractArray{T,2}, ε::T; h::Tuple{T,T}=(T(1),T(1)), η:
     ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
     P = projvectorfield_2D(∇*u; η=η)
     return Aball_2D{T,2,Inf}(P*∇, ε)
+end
+
+
+# ElasticNetABall_2D ε-ball: C={x:||x||_{2,1}+μ^2/2*||x||_{2,2}^2<=ε}
+
+struct ElasticNetABall_2D{T}<:ConvexSet{T,2}
+    A::AbstractLinearOperator
+    μ::T
+    ε::T
+end
+
+function project!(y::DT, C::ElasticNetABall_2D{T}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,DT<:AbstractArray{T,2}}
+
+    # Minimization function
+    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(elastic_net_vect(C.μ), C.ε))
+
+    # Minimization
+    p = minimize(f, opt)
+
+    # Dual to primal solution
+    x .= y-adjoint(C.A)*p
+
+    dual_est ? (return x, p) : (return x)
+
+end
+
+### Utils for root-finding elastic net
+
+function pareto_search_elnet(ptn::AbstractArray{T,2}) where T
+    obj_fun = δ->objfun_paretosearch_proj21(δ, ptn)
+    return find_zero(obj_fun, (T(0), maximum(ptn)))
+end
+
+function objfun_paretosearch_elnet(δ::T, ptn::Array{T,2}) where T
+    ptn_ = ptn[ptn.>=δ]
+    return T(1)-sum(ptn_)+length(ptn_)*δ
+end
+
+function objfun_paretosearch_elnet(δ::T, ptn::CuArray{T,2}) where T
+    ptn_ = ptn[ptn.>=δ]
+    return T(1)-sum(ptn_)+length(ptn_)*δ
 end
 
 

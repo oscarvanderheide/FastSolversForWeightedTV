@@ -77,8 +77,31 @@ end
 (g::ElasticNetVect_2D{T})(x::AbstractArray{T,3}) where T = norm21(x)+g.μ^2/T(2)*norm22(x)^2
 
 function proxy!(p::DT, λ::T, g::ElasticNetVect_2D{T}, q::DT; ptn::Union{RT,Nothing}=nothing) where {T,DT<:AbstractArray{T,3},RT<:AbstractArray{T,2}}
-    ptn === nothing && (ptn = ptnorm2(p))
-    q .= T(1)/(T(1)+g.μ^2*λ)*(T(1).-λ./ptn).*(ptn .>= λ).*p
+    ptn === nothing && (ptn = ptnorm2_reg(p; η=T(1e-20)))
+    q .= (T(1).-λ./ptn).*(ptn .>= λ).*p/(T(1)+λ*g.μ^2)
 end
 
 elastic_net_vect(μ::T) where T = ElasticNetVect_2D{T}(μ)
+
+function project!(p::DT, ε::T, g::ElasticNetVect_2D{T}, q::DT) where {T,DT<:AbstractArray{T,3}}
+    ptn = ptnorm2_reg(p; η=T(1e-20))
+    if sum(ptn+T(0.5)*g.μ^2*ptn.^2)<=ε
+        q .= p
+        return p
+    else
+        λ = pareto_search_projElNet(ptn, g.μ, ε)
+        return proxy!(p, λ, g, q; ptn=ptn)
+    end
+end
+
+### Utils for root-finding elastic net
+
+function pareto_search_projElNet(ptn::AbstractArray{T,2}, μ::T, ε::T) where T
+    obj_fun = λ->objfun_paretosearch_projElNet(ptn, λ, μ, ε)
+    return find_zero(obj_fun, (T(0), maximum(ptn)))
+end
+
+function objfun_paretosearch_projElNet(ptn::AbstractArray{T,2}, λ::T, μ::T, ε::T) where T
+    ptn_ = (ptn[ptn.>=λ].-λ)/(T(1)+λ*μ^2)
+    return sum(ptn_+T(0.5)*μ^2*ptn_.^2)-ε
+end

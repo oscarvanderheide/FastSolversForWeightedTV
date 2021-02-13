@@ -31,11 +31,12 @@ min_x f(x)+g(x)
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA
 """
-function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x::DT) where {T,N,DT<:AbstractArray{T,N}}
+function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
-    x0 = copy(initial_estimate)
-    xtmp = similar(x)
+    x0 .= initial_estimate
+    xtmp = similar(x0)
+    x = similar(x0)
     t0 = T(1)
     flag_conv = false
 
@@ -55,12 +56,12 @@ function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, s
         tol_x !== nothing && (norm(x-x0)<=tol_x*norm(x0)) && break
 
         # Update unknowns
-        i < niter && (x0 .= x)
+        x0 .= x
 
     end
 
     # Return output
-    return x
+    return x0
 
 end
 

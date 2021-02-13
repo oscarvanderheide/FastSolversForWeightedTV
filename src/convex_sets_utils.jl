@@ -1,7 +1,7 @@
 #: Convex set utilities
 
 
-export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, Aball_2D, tv_ball_2D, tsqv_ball_2D, bv_ball_2D
+export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, box_constraints_2D, Aball_2D, tv_ball_2D, tsqv_ball_2D, bv_ball_2D, elnettv_ball_2D
 
 
 # ℓball_2D{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
@@ -27,7 +27,8 @@ end
 function project!(y::DT, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
 
     # Minimization function
-    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_ball(2,p2,C.ε)))
+    # f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_ball(2, p2, C.ε)))
+    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_norm(T, 2, p2), C.ε))
 
     # Minimization
     p = minimize(f, opt)
@@ -95,22 +96,9 @@ function project!(y::DT, C::ElasticNetABall_2D{T}, opt::OptimOptions{T}, x::DT; 
 
 end
 
-### Utils for root-finding elastic net
+project(y::AbstractArray{T,2}, C::ElasticNetABall_2D{T}, opt::OptimOptions{T}; dual_est::Bool=false) where T = project!(y, C, opt, similar(y); dual_est=dual_est)
 
-function pareto_search_elnet(ptn::AbstractArray{T,2}) where T
-    obj_fun = δ->objfun_paretosearch_proj21(δ, ptn)
-    return find_zero(obj_fun, (T(0), maximum(ptn)))
-end
-
-function objfun_paretosearch_elnet(δ::T, ptn::Array{T,2}) where T
-    ptn_ = ptn[ptn.>=δ]
-    return T(1)-sum(ptn_)+length(ptn_)*δ
-end
-
-function objfun_paretosearch_elnet(δ::T, ptn::CuArray{T,2}) where T
-    ptn_ = ptn[ptn.>=δ]
-    return T(1)-sum(ptn_)+length(ptn_)*δ
-end
+elnettv_ball_2D(n::Tuple{Int64,Int64}, μ::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false) where T = ElasticNetABall_2D{T}(gradient_2D(n; h=h, gpu=gpu), μ, ε)
 
 
 # Box constraints

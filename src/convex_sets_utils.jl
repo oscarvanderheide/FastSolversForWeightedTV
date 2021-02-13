@@ -27,8 +27,7 @@ end
 function project!(y::DT, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}, x::DT; dual_est::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
 
     # Minimization function
-    # f = leastsquares_misfit(adjoint(C.A), y)+C.ε*ell_norm(T,2,conjugate_exp(p2))
-    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_ball(2,p2, C.ε)))
+    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_ball(2,p2,C.ε)))
 
     # Minimization
     p = minimize(f, opt)
@@ -41,12 +40,6 @@ function project!(y::DT, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}, x::DT; dual_
 end
 
 project(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}, opt::OptimOptions{T}; dual_est::Bool=false) where {T,p2} = project!(y, C, opt, similar(y); dual_est=dual_est)
-
-# function conjugate_exp(p2::Number)::Number
-#     p2 == 1   && (return Inf)
-#     p2 == 2   && (return 2)
-#     p2 == Inf && (return 1)
-# end
 
 
 # TV-related ball

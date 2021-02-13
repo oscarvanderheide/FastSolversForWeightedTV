@@ -61,15 +61,8 @@ end
 
 # 2, Inf
 
-function proxy!(p::DT, λ::T, ::ℓnorm_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}}
-    C = ell_ball(2, 1, T(1))
-    project!(p/λ, C, q)
-    q .= p-λ*q
-    return q
-end
-
 function project!(p::DT, ε::T, ::ℓnorm_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}}
-    ptn = ptnorm2(p)
+    ptn = ptnorm2_reg(p; η=T(1e-20))
     q .= p.*((ptn.>=ε)./ptn+(ptn.<ε))
     return q
 end

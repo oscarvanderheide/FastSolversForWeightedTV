@@ -1,8 +1,8 @@
 using LinearAlgebra, FastSolversForWeightedTV, CUDA, Flux, Test, PyPlot, DelimitedFiles, BenchmarkTools
 CUDA.allowscalar(false)
 
-flag_gpu = true
-# flag_gpu = false
+# flag_gpu = true
+flag_gpu = false
 
 # Load image
 y = Float32.(readdlm("./data/T1.txt")); flag_gpu && (y = y |> gpu)

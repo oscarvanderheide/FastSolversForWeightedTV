@@ -12,13 +12,13 @@ n = size(y)
 # Constraint set
 ε_rel = 0.1f0
 η = 0.01f0
-ε = ε_rel*normTV(y, v; η=η)
-C = tv_ball_2D(v, ε; η=η)
-
-# Projection
+ε = ε_rel*normTV(y, v, η)
 p0 = zeros(Float32, n..., 2); flag_gpu && (p0 = p0 |> gpu)
 opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=3000, nesterov=true)
-x, p = project(y, C, opt; dual_est=true) |> cpu
+C = tv_ball_2D(v, η, ε; opt=opt)
+
+# Projection
+x = project(y, C) |> cpu
 y = y |> cpu
 
 # Plot

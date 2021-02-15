@@ -26,7 +26,7 @@ AbstractLinearOperators.matvecprod_adj(P::CuProjVectorField2D{T}, u::CuArray{T,3
 
 # Constructor
 
-normalize_vectorfield(v::AbstractArray{T,3}; η::T=T(0)) where T = v./ptnorm2_reg(v; η=η)
+normalize_vectorfield(v::AbstractArray{T,3}; η::T=T(0)) where T = v./ptnorm2(v; η=η)
 projvectorfield_2D(v::Array{T,3}; η::T=T(0)) where T = ProjVectorField2D{T}(normalize_vectorfield(v; η=η))
 projvectorfield_2D(v::CuArray{T,3}; η::T=T(0)) where T = CuProjVectorField2D{T}(normalize_vectorfield(v; η=η))
 

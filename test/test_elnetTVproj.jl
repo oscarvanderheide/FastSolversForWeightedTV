@@ -10,14 +10,14 @@ n = size(y)
 
 # Constraint set
 ε_rel = 0.5f0
-μ = 1f0
+μ = 0.1f0
 ε = ε_rel*normElNetTV(y, μ)
-C = elnettv_ball_2D(n, μ, ε; gpu=flag_gpu)
-
-# Projection
 p0 = zeros(Float32, size(y)..., 2); flag_gpu && (p0 = p0 |> gpu)
 opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=2000, nesterov=true)
-x, p = project(y, C, opt; dual_est=true) |> cpu
+C = elnettv_ball_2D(n, μ, ε; opt=opt, gpu=flag_gpu)
+
+# Projection
+x = project(y, C) |> cpu
 y = y |> cpu
 
 # Plot

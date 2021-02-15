@@ -8,7 +8,7 @@ export ℓnorm_2D, ell_norm, elastic_net_vect
 
 struct ℓnorm_2D{T,p1,p2}<:ProximableFunction{T,3} end
 
-ell_norm(T::DataType, p1::Number, p2::Number) = ℓnorm_2D{T,p1,p2}()
+ell_norm(T, p1::Number, p2::Number) = ℓnorm_2D{T,p1,p2}()
 
 (g::ℓnorm_2D{T,2,1})(x::AbstractArray{T,3}) where T = norm21(x)
 (g::ℓnorm_2D{T,2,2})(x::AbstractArray{T,3}) where T = norm22(x)
@@ -62,7 +62,7 @@ end
 # 2, Inf
 
 function project!(p::DT, ε::T, ::ℓnorm_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}}
-    ptn = ptnorm2_reg(p; η=T(1e-20))
+    ptn = ptnorm2(p)
     q .= p.*((ptn.>=ε)./ptn+(ptn.<ε))
     return q
 end
@@ -77,14 +77,14 @@ end
 (g::ElasticNetVect_2D{T})(x::AbstractArray{T,3}) where T = norm21(x)+g.μ^2/T(2)*norm22(x)^2
 
 function proxy!(p::DT, λ::T, g::ElasticNetVect_2D{T}, q::DT; ptn::Union{RT,Nothing}=nothing) where {T,DT<:AbstractArray{T,3},RT<:AbstractArray{T,2}}
-    ptn === nothing && (ptn = ptnorm2_reg(p; η=T(1e-20)))
+    ptn === nothing && (ptn = ptnorm2(p))
     q .= (T(1).-λ./ptn).*(ptn .>= λ).*p/(T(1)+λ*g.μ^2)
 end
 
 elastic_net_vect(μ::T) where T = ElasticNetVect_2D{T}(μ)
 
 function project!(p::DT, ε::T, g::ElasticNetVect_2D{T}, q::DT) where {T,DT<:AbstractArray{T,3}}
-    ptn = ptnorm2_reg(p; η=T(1e-20))
+    ptn = ptnorm2(p)
     if sum(ptn+T(0.5)*g.μ^2*ptn.^2)<=ε
         q .= p
         return p

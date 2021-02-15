@@ -11,12 +11,12 @@ n = size(y)
 # Constraint set
 ε_rel = 0.5f0
 ε = ε_rel*normTsqV(y)
-C = tsqv_ball_2D(n, ε; gpu=flag_gpu)
+p0 = zeros(Float32, size(y)..., 2); flag_gpu && (p0 = p0 |> gpu)
+opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=100, nesterov=true)
+C = tsqv_ball_2D(n, ε; opt=opt, gpu=flag_gpu)
 
 # Projection
-p0 = zeros(Float32, size(y)..., 2); flag_gpu && (p0 = p0 |> gpu)
-opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10, nesterov=true)
-x, p = project(y, C, opt; dual_est=true) |> cpu
+x = project(y, C) |> cpu
 y = y |> cpu
 
 # Plot

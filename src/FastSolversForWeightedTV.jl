@@ -9,19 +9,17 @@ include("./norm_utils.jl")
 include("./gradient_utils.jl")
 include("./gradient.jl")
 
-# Differentiable functions
+# Functional types
 include("./differentiable_type.jl")
-include("./differentiable_utils.jl")
-
-# Proximable functions
 include("./proximable_type.jl")
-include("./proximable_utils.jl")
-
-# Optimizable functions
 include("./optim_type.jl")
 
 # FISTA solver
 include("./fista_solver.jl")
+
+# Functional utils
+include("./differentiable_utils.jl")
+include("./proximable_utils.jl")
 
 # Convex set
 include("./convex_sets.jl")

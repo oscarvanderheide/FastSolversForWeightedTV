@@ -1,7 +1,7 @@
 #: Proximable function utilities
 
 
-export ℓnorm_2D, ell_norm, elastic_net_vect
+export ℓnorm_2D, ell_norm, elastic_net_vect, tv_norm_2D
 
 
 # ℓnorm_2D
@@ -31,6 +31,41 @@ function project!(p::DT, ε::T, g::ℓnorm_2D{T,2,1}, q::DT) where {T,DT<:Abstra
     q .= ε*q
     return q
 end
+
+
+# A-ell_norm
+
+struct Aℓnorm_2D{T,p1,p2}<:ProximableFunction{T,2}
+    A::AbstractLinearOperator
+    opt::OptimOptions{T}
+end
+
+function proxy!(y::DT, λ::T, g::Aℓnorm_2D{T,2,1}, x::DT; update_dual_estimate::Bool=false) where {T,DT<:AbstractArray{T,2}}
+
+    # Minimization function
+    f = leastsquares_misfit(λ*adjoint(g.A), y)+indicator(ell_norm(T, 2, Inf), T(1))
+
+    # Minimization (dual variable)
+    p = minimize(f, g.opt); update_dual_estimate && (g.opt.initial_estimate .= p)
+
+    # Dual to primal solution
+    x .= y-λ*adjoint(g.A)*p
+
+    return x
+
+end
+
+
+# TV-related norm
+
+function tv_norm_2D(T::DataType, n::Tuple{Int64,Int64}; h::NTuple{2}=(1f0,1f0), gpu::Bool=false, opt::Union{Nothing,OptimOptions{Float32}}=nothing)
+    if opt === nothing
+        gpu ? (p0 = CUDA.zeros(T, n..., 3)) : (p0 = zeros(T, n..., 3))
+        opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10)
+    end
+    return Aℓnorm_2D{T,2,1}(gradient_2D(n; h=T.(h), gpu=gpu), opt)
+end
+
 
 ### Utils for root-finding 2,1
 

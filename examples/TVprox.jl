@@ -4,17 +4,17 @@ CUDA.allowscalar(false)
 flag_gpu = true
 # flag_gpu = false
 
-# Load image
-y = Float32.(readdlm("./data/T1.txt")); flag_gpu && (y = y |> gpu)
-n = size(y)
+# Create noise image
+n = (256, 256)
+include("../data/shepp_logan_phantom.jl")
+y = Float32.(shepp_logan(n...))+0.1f0*randn(Float32, n); flag_gpu && (y = y |> gpu)
 
 # Proximal operator setup
 λ = 0.1f0
-p0 = zeros(Float32, size(y)..., 2); flag_gpu && (p0 = p0 |> gpu)
-opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=3000, nesterov=true)
+opt = opt_fista(; niter=10000, nesterov=true, tol_x=1f-5)
 g = tv_norm_2D(Float32, n; opt=opt, gpu=flag_gpu)
 
-# Projection
+# Proximal operator eval
 x = proxy(y, λ, g) |> cpu
 y = y |> cpu
 

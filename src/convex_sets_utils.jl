@@ -22,7 +22,7 @@ project!(p::DT, C::ℓball_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}} 
 struct Aball_2D{T,p1,p2}<:ConvexSet{T,2}
     A::AbstractLinearOperator
     ε::T
-    opt::OptimOptions{T}
+    opt::OptimOptions
 end
 
 function project!(y::DT, C::Aball_2D{T,2,p2}, x::DT; update_dual_estimate::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
@@ -62,7 +62,7 @@ project_debug(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}; update_dual_estimate::
 
 # TV-related ball
 
-function tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions}=nothing) where T
     if opt === nothing
         gpu ? (p0 = CUDA.zeros(T, n..., 3)) : (p0 = zeros(T, n..., 3))
         opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10)
@@ -70,7 +70,7 @@ function tv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu
     return Aball_2D{T,2,1}(gradient_2D(n; h=h, gpu=gpu), ε, opt)
 end
 
-function tsqv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function tsqv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions}=nothing) where T
     if opt === nothing
         gpu ? (p0 = CUDA.zeros(T, n..., 3)) : (p0 = zeros(T, n..., 3))
         opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10)
@@ -78,7 +78,7 @@ function tsqv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), g
     return Aball_2D{T,2,2}(gradient_2D(n; h=h, gpu=gpu), ε, opt)
 end
 
-function bv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function bv_ball_2D(n::Tuple{Int64,Int64}, ε::T; h::Tuple{T,T}=(T(1),T(1)), gpu::Bool=false, opt::Union{Nothing,OptimOptions}=nothing) where T
     if opt === nothing
         gpu ? (p0 = CUDA.zeros(T, n..., 3)) : (p0 = zeros(T, n..., 3))
         opt = opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10)
@@ -89,21 +89,21 @@ end
 
 # Structural TV-related ball
 
-function tv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function tv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions}=nothing) where T
     opt === nothing && (opt = opt_fista(; initial_estimate=similar(u, size(u)..., 3), steplength=1f0/8f0, niter=10))
     ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
     P = projvectorfield_2D(∇*u; η=η)
     return Aball_2D{T,2,1}(P*∇, ε, opt)
 end
 
-function tsqv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function tsqv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions}=nothing) where T
     opt === nothing && (opt = opt_fista(; initial_estimate=similar(u, size(u)..., 3), steplength=1f0/8f0, niter=10))
     ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
     P = projvectorfield_2D(∇*u; η=η)
     return Aball_2D{T,2,2}(P*∇, ε, opt)
 end
 
-function bv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions{T}}=nothing) where T
+function bv_ball_2D(u::AbstractArray{T,2}, η::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions}=nothing) where T
     opt === nothing && (opt = opt_fista(; initial_estimate=similar(u, size(u)..., 3), steplength=1f0/8f0, niter=10))
     ∇ = gradient_2D(size(u); h=h, gpu=u isa CuArray)
     P = projvectorfield_2D(∇*u; η=η)
@@ -117,7 +117,7 @@ struct ElasticNetABall_2D{T}<:ConvexSet{T,2}
     A::AbstractLinearOperator
     μ::T
     ε::T
-    opt::OptimOptions{T}
+    opt::OptimOptions
 end
 
 function project!(y::DT, C::ElasticNetABall_2D{T}, x::DT; update_dual_estimate::Bool=false) where {T,DT<:AbstractArray{T,2}}
@@ -152,7 +152,7 @@ project(y::AbstractArray{T,2}, C::ElasticNetABall_2D{T}; update_dual_estimate::B
 
 project_debug(y::AbstractArray{T,2}, C::ElasticNetABall_2D{T}; update_dual_estimate::Bool=false) where T = project_debug!(y, C, similar(y); update_dual_estimate=update_dual_estimate)
 
-function elnettv_ball_2D(n::Tuple{Int64,Int64}, μ::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions{T}}=nothing, gpu::Bool=false) where T
+function elnettv_ball_2D(n::Tuple{Int64,Int64}, μ::T, ε::T; h::Tuple{T,T}=(T(1),T(1)), opt::Union{Nothing,OptimOptions}=nothing, gpu::Bool=false) where T
     if opt === nothing
         gpu ? (p0 = CUDA.zeros(T, n..., 3)) : (p0 = zeros(T, n..., 3))
         opt =  opt_fista(; initial_estimate=p0, steplength=1f0/8f0, niter=10)

@@ -5,20 +5,19 @@ export OptimOptions, OptFISTA, opt_fista, minimize, minimize!, minimize_fista!
 
 # Optimization abstract type
 
-abstract type OptimOptions{T} end
+abstract type OptimOptions end
 
 
 # Options type for FISTA
 
-mutable struct OptFISTA{T}<:OptimOptions{T}
-    initial_estimate::AbstractArray{T}
-    steplength::T
+mutable struct OptFISTA<:OptimOptions
+    steplength::Union{Nothing,Number}
     niter::Int64
-    tol_x::Union{Nothing,T}
+    tol_x::Union{Nothing,Number}
     nesterov::Bool
 end
 
-opt_fista(; initial_estimate::AbstractArray{T,N}, steplength::T=T(1), niter::Int64=1000, tol_x::Union{Nothing,T}=nothing, nesterov::Bool=true) where {T,N} = OptFISTA{T}(initial_estimate, steplength, niter, tol_x, nesterov)
+opt_fista(; steplength::Union{Nothing,Number}=nothing, niter::Int64=1000, tol_x::Union{Nothing,Number}=nothing, nesterov::Bool=true) = OptFISTA(steplength, niter, tol_x, nesterov)
 
 
 # Generic FISTA solver
@@ -52,6 +51,7 @@ function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, s
         end                                        # <
 
         # Update unknowns
+        ~isnothing(tol_x) && norm(x-x0)/norm(x0) < tol_x && break
         x0 .= x
 
     end
@@ -61,7 +61,7 @@ function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, s
 
 end
 
-function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
+function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
     x0 .= initial_estimate
@@ -86,6 +86,7 @@ function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate:
         # Convergence check
         fval_hist[i] = fval
         err_rel[i] = norm(x-x0)/norm(x0)
+        ~isnothing(tol_x) && err_rel[i] < tol_x && break
 
         # Update unknowns
         x0 .= x
@@ -97,10 +98,10 @@ function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate:
 
 end
 
-minimize!(fun::DiffPlusProxFunction{T,N}, opt::OptFISTA{T}, x::AbstractArray{T,N}) where {T,N} = minimize_fista!(fun, opt.initial_estimate, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
+minimize!(fun::DiffPlusProxFunction{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
 
-minimize_debug!(fun::DiffPlusProxFunction{T,N}, opt::OptFISTA{T}, x::AbstractArray{T,N}) where {T,N} = minimize_fista_debug!(fun, opt.initial_estimate, opt.steplength, opt.niter, opt.nesterov, x)
+minimize_debug!(fun::DiffPlusProxFunction{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista_debug!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
 
-minimize(fun::OptimizableFunction{T,N}, opt::OptimOptions{T}) where {T,N} = minimize!(fun, opt, similar(opt.initial_estimate))
+minimize(fun::OptimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize!(fun, x0, opt, similar(x0))
 
-minimize_debug(fun::OptimizableFunction{T,N}, opt::OptimOptions{T}) where {T,N} = minimize_debug!(fun, opt, similar(opt.initial_estimate))
+minimize_debug(fun::OptimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize_debug!(fun, x0, opt, similar(x0))

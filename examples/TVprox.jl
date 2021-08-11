@@ -6,7 +6,7 @@ flag_gpu = true
 
 # Create noise image
 n = (256, 256)
-include("../data/shepp_logan_phantom.jl")
+include("../data/shepp_logan.jl")
 y = Float32.(shepp_logan(n...))+0.1f0*randn(Float32, n); flag_gpu && (y = y |> gpu)
 
 # Proximal operator setup

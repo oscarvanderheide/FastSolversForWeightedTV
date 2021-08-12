@@ -31,7 +31,8 @@ function project!(y::DT, C::Aball_2D{T,2,p2}, x::DT; update_dual_estimate::Bool=
     f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_norm(T, 2, p2), C.ε))
 
     # Minimization (dual variable)
-    p = minimize(f, C.opt); update_dual_estimate && (C.opt.initial_estimate .= p)
+    y isa CuArray ? (p0 = CUDA.zeros(T, size(y)..., 2)) : (p0 = zeros(T, size(y)..., 2))
+    p = minimize(f, p0, C.opt); update_dual_estimate && (C.opt.initial_estimate .= p)
 
     # Dual to primal solution
     x .= y-adjoint(C.A)*p

@@ -1,17 +1,16 @@
-using LinearAlgebra, FastSolversForWeightedTV, CUDA, Flux, Test, PyPlot, DelimitedFiles, BenchmarkTools
+using LinearAlgebra, FastSolversForWeightedTV, CUDA, Flux, Test, PyPlot, TestImages
 CUDA.allowscalar(false)
 
-flag_gpu = true
-# flag_gpu = false
+# flag_gpu = true
+flag_gpu = false
 
 # Create noise image
 n = (256, 256)
-include("../data/shepp_logan.jl")
-y = Float32.(shepp_logan(n...))+0.1f0*randn(Float32, n); flag_gpu && (y = y |> gpu)
+y = Float32.(TestImages.shepp_logan(n...))+0.1f0*randn(Float32, n); flag_gpu && (y = y |> gpu)
 
 # Proximal operator setup
 λ = 0.1f0
-opt = opt_fista(; niter=10000, nesterov=true, tol_x=1f-5)
+opt = opt_fista(; niter=10000, nesterov=true)
 g = tv_norm_2D(Float32, n; opt=opt, gpu=flag_gpu)
 
 # Proximal operator eval

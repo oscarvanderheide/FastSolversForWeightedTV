@@ -40,6 +40,8 @@ struct Aℓnorm_2D{T,p1,p2}<:ProximableFunction{T,2}
     opt::OptimOptions
 end
 
+(g::Aℓnorm_2D{T,2,1})(x::AbstractArray{T,2}) where T = norm21(g.A*x)
+
 function proxy!(y::DT, λ::T, g::Aℓnorm_2D{T,2,1}, x::DT) where {T,DT<:AbstractArray{T,2}}
 
     # Minimization function
@@ -68,9 +70,9 @@ end
 
 ### Utils for root-finding 2,1
 
-function pareto_search_proj21(ptn::AbstractArray{T,2}) where T
+function pareto_search_proj21(ptn::AbstractArray{T,2}; rtol::T=T(1e-3)) where T
     obj_fun = δ->objfun_paretosearch_proj21(δ, ptn)
-    return find_zero(obj_fun, (T(0), maximum(ptn)))
+    return find_zero(obj_fun, (T(0), maximum(ptn)); rtol=rtol)
 end
 
 function objfun_paretosearch_proj21(δ::T, ptn::AbstractArray{T,2}) where T
@@ -130,9 +132,9 @@ end
 
 ### Utils for root-finding elastic net
 
-function pareto_search_projElNet(ptn::AbstractArray{T,2}, μ::T, ε::T) where T
+function pareto_search_projElNet(ptn::AbstractArray{T,2}, μ::T, ε::T; rtol::T=T(1e-3)) where T
     obj_fun = λ->objfun_paretosearch_projElNet(ptn, λ, μ, ε)
-    return find_zero(obj_fun, (T(0), maximum(ptn)))
+    return find_zero(obj_fun, (T(0), maximum(ptn)); rtol=rtol)
 end
 
 function objfun_paretosearch_projElNet(ptn::AbstractArray{T,2}, λ::T, μ::T, ε::T) where T

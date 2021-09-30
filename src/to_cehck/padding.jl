@@ -1,23 +1,18 @@
 #: Padding utils
 
-export Padding2D, NoPad2D, PadZero2D, PadCopy2D, PadPeriodic2D, pad, restrict, padding
-
 
 # Abstract type
 
-"""Expected behavior:
-- pad(u::AbstractArray{T,N}, p::Padding)::typeof(u)
-- restrict(u::AbstractArray{T,N}, p::Padding)::typeof(u)"""
-abstract type Padding2D{T} end
+abstract type Padding{T,N} end
 
 
 # Concrete type
 
 ## No-padding
 
-struct NoPad2D{T}<:Padding2D{T} end
+struct NoPad{T,N}<:Padding2D{T,N} end
 
-pad(u::AbstractArray{T,N}, ::NoPad2D{T}) where {T,N} = u
+pad(u::AbstractArray{T,N}, ::NoPad{T,N}) where {T,N} = u
 
 restrict(u::AbstractArray{T,N}, ::NoPad2D{T}) where {T,N} = u
 

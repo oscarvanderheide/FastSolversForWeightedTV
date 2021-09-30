@@ -3,26 +3,34 @@ module FastSolversForWeightedTV
 # Modules
 using LinearAlgebra, NNlib, CUDA, Flux, AbstractLinearOperators, Roots
 
-# Gradient operator
-include("./padding.jl")
-include("./norm_utils.jl")
-include("./gradient_utils.jl")
-include("./gradient.jl")
+# Types and utils
+include("./abstract_functional_types.jl")
+include("./abstract_optimization_types.jl")
+include("./type_utils.jl")
 
-# Functional types
-include("./differentiable_type.jl")
-include("./proximable_type.jl")
-include("./optim_type.jl")
+# Optimization solvers
+include("./optimization_solvers.jl")
 
-# FISTA solver
-include("./fista_solver.jl")
+# Differentiable function examples
+include("./differentiable_examples.jl")
 
-# Functional utils
-include("./differentiable_utils.jl")
-include("./proximable_utils.jl")
+# Proximable function examples
+include("./proximable_examples.jl")
 
-# Convex set
-include("./convex_sets.jl")
-include("./convex_sets_utils.jl")
+# # Set types
+# include("./projectionable_sets.jl")
+
+# # Gradient operator
+# include("./padding.jl")
+# include("./norm_utils.jl")
+# include("./gradient_utils.jl")
+# include("./gradient.jl")
+
+# # Functional utils
+# include("./differentiable_utils.jl")
+# include("./proximable_utils.jl")
+
+# # Convex set
+# include("./convex_sets_utils.jl")
 
 end

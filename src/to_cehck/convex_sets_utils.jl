@@ -6,7 +6,7 @@ export ℓball_2D, ell_ball, upperlim_constraints_2D, lowerlim_constraints_2D, b
 
 # ℓball_2D{p1,p2} ε-ball: C={x:||x||_{p1,p2}<=ε}
 
-struct ℓball_2D{T,p1,p2}<:ConvexSet{T,3}
+struct ℓball_2D{T,p1,p2}<:ProjectionableSet{T,3}
     ε::T
 end
 
@@ -19,35 +19,47 @@ project!(p::DT, C::ℓball_2D{T,2,Inf}, q::DT) where {T,DT<:AbstractArray{T,3}} 
 
 # A-ball
 
-struct Aball_2D{T,p1,p2}<:ConvexSet{T,2}
+struct Aball_2D{T,p1,p2}<:ProjectionableSet{T,2}
     A::AbstractLinearOperator
     ε::T
     opt::OptimOptions
 end
 
-function project!(y::DT, C::Aball_2D{T,2,p2}, x::DT; update_dual_estimate::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
+function project!(y::DT, C::Aball_2D{T,2,p2}, x::DT) where {T,p2,DT<:AbstractArray{T,2}}
 
-    # Minimization function
-    f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_norm(T, 2, p2), C.ε))
+    if C.opt isa OptFISTA
 
-    # Minimization (dual variable)
-    y isa CuArray ? (p0 = CUDA.zeros(T, size(y)..., 2)) : (p0 = zeros(T, size(y)..., 2))
-    p = minimize(f, p0, C.opt); update_dual_estimate && (C.opt.initial_estimate .= p)
+        # Minimization function
+        f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_norm(T, 2, p2), C.ε))
 
-    # Dual to primal solution
-    x .= y-adjoint(C.A)*p
+        # Minimization (dual variable)
+        y isa CuArray ? (p0 = CUDA.zeros(T, size(y)..., 2)) : (p0 = zeros(T, size(y)..., 2))
+        p = minimize(f, p0, C.opt)
+
+        # Dual to primal solution
+        x .= y-adjoint(C.A)*p
+
+    elseif C.opt isa OptAdaptiveProxy
+
+        # Minimization functions
+        f = leastsquares_misfit(identity_operator(typeof(y), size(y)), y)
+        g = tv_norm_2D(T, size(y); gpu=y isa CuArray)
+
+        minimize_adaptive_proxy!(f, g, C.ε, x, C.opt)
+
+    end
 
     return x
 
 end
 
-function project_debug!(y::DT, C::Aball_2D{T,2,p2}, x::DT; update_dual_estimate::Bool=false) where {T,p2,DT<:AbstractArray{T,2}}
+function project_debug!(y::DT, C::Aball_2D{T,2,p2}, x::DT) where {T,p2,DT<:AbstractArray{T,2}}
 
     # Minimization function
     f = leastsquares_misfit(adjoint(C.A), y)+conjugate(indicator(ell_norm(T, 2, p2), C.ε))
 
     # Minimization (dual variable)
-    p, fval_hist, err_rel = minimize_debug(f, C.opt); update_dual_estimate && (C.opt.initial_estimate .= p)
+    p, fval_hist, err_rel = minimize_debug(f, C.opt)
 
     # Dual to primal solution
     x .= y-adjoint(C.A)*p
@@ -56,9 +68,9 @@ function project_debug!(y::DT, C::Aball_2D{T,2,p2}, x::DT; update_dual_estimate:
 
 end
 
-project(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}; update_dual_estimate::Bool=false) where {T,p2} = project!(y, C, similar(y); update_dual_estimate=update_dual_estimate)
+project(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}) where {T,p2} = project!(y, C, similar(y))
 
-project_debug(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}; update_dual_estimate::Bool=false) where {T,p2} = project_debug!(y, C, similar(y); update_dual_estimate=update_dual_estimate)
+project_debug(y::AbstractArray{T,2}, C::Aball_2D{T,2,p2}) where {T,p2} = project_debug!(y, C, similar(y))
 
 
 # TV-related ball
@@ -114,7 +126,7 @@ end
 
 # ElasticNetABall_2D ε-ball: C={x:||x||_{2,1}+μ^2/2*||x||_{2,2}^2<=ε}
 
-struct ElasticNetABall_2D{T}<:ConvexSet{T,2}
+struct ElasticNetABall_2D{T}<:ProjectionableSet{T,2}
     A::AbstractLinearOperator
     μ::T
     ε::T
@@ -164,7 +176,7 @@ end
 
 # Box constraints
 
-abstract type AbstractValueConstraints2D{T}<:ConvexSet{T,2} end
+abstract type AbstractValueConstraints2D{T}<:ProjectionableSet{T,2} end
 
 struct LowerLimConstraints2D{T}<:AbstractValueConstraints2D{T}
     a::T

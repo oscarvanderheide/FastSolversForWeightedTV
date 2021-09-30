@@ -1,16 +1,22 @@
 #: Optimization functions and solvers
 
-export OptimOptions, OptFISTA, opt_fista, minimize, minimize!, minimize_fista!
+export OptimOptions, OptimProxy, minimize, minimize!
+export OptFISTA, opt_fista, minimize_fista!
+export OptAdaptiveProxy, opt_adaptive_proxy, minimize_adaptive_proxy!, minimize_adaptive_proxy
 
 
 # Optimization abstract type
 
 abstract type OptimOptions end
+abstract type OptimProxy<:OptimOptions end
+
+minimize(fun::MinimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize!(fun, x0, opt, similar(x0))
+minimize_debug(fun::MinimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize_debug!(fun, x0, opt, similar(x0))
 
 
 # Options type for FISTA
 
-mutable struct OptFISTA<:OptimOptions
+mutable struct OptFISTA<:OptimProxy
     steplength::Union{Nothing,Number}
     niter::Int64
     tol_x::Union{Nothing,Number}
@@ -30,18 +36,18 @@ min_x f(x)+g(x)
 Reference: Beck, A., and Teboulle, M., 2009, A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems
 https://www.ceremade.dauphine.fr/~carlier/FISTA
 """
-function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
+function minimize_fista!(fun::DiffPlusProxFun{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
-    x0 .= initial_estimate
-    xtmp = similar(x0)
-    x = similar(x0)
+    x0   .= initial_estimate
+    xtmp  = similar(x0)
+    x     = similar(x0)
     t0 = T(1)
 
     # Optimization loop
     for i = 1:niter
 
-        fval = grad!(fun.f, x0, xtmp)              # Compute gradient
+        grad!(fun.f, x0, xtmp)                     # Compute gradient
         xtmp .= x0-steplength*xtmp                 # Gradient update
         proxy!(xtmp, steplength, fun.g, x)         # Compute proxy
         if nesterov                                # > Nesterov two-step update:
@@ -61,7 +67,7 @@ function minimize_fista!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, s
 
 end
 
-function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
+function minimize_fista_debug!(fun::DiffPlusProxFun{T,N}, initial_estimate::DT, steplength::T, niter::Int64, nesterov::Bool, tol_x::Union{Nothing,T}, x0::DT) where {T,N,DT<:AbstractArray{T,N}}
 
     # Initialization
     x0 .= initial_estimate
@@ -98,10 +104,6 @@ function minimize_fista_debug!(fun::DiffPlusProxFunction{T,N}, initial_estimate:
 
 end
 
-minimize!(fun::DiffPlusProxFunction{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
+minimize!(fun::DiffPlusProxFun{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
 
-minimize_debug!(fun::DiffPlusProxFunction{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista_debug!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)
-
-minimize(fun::OptimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize!(fun, x0, opt, similar(x0))
-
-minimize_debug(fun::OptimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize_debug!(fun, x0, opt, similar(x0))
+minimize_debug!(fun::DiffPlusProxFun{T,N}, x0::AbstractArray{T,N}, opt::OptFISTA, x::AbstractArray{T,N}) where {T,N} = minimize_fista_debug!(fun, x0, opt.steplength, opt.niter, opt.nesterov, opt.tol_x, x)

@@ -1,9 +1,9 @@
 #: Gradient operator via convolution
 
-export gradient_2D, structural_weight, gradient_mean
+export gradient_2D, gradient_batch_2D, structural_weight, gradient_mean
 
 
-# Gradient (linear operator)
+# Gradient (2D)
 
 struct Gradient_2D{T}<:AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,3}}
     stencil::AbstractArray{T,4}
@@ -32,6 +32,37 @@ end
 
 Flux.gpu(D::Gradient_2D{T}) where T = Gradient_2D{T}(gpu(D.stencil))
 Flux.cpu(D::Gradient_2D{T}) where T = Gradient_2D{T}(cpu(D.stencil))
+
+
+# Gradient (2D-batch)
+
+struct GradientBatch_2D{T}<:AbstractLinearOperator{AbstractArray{T,4},AbstractArray{T,4}}
+    stencil::AbstractArray{T,4}
+end
+
+AbstractLinearOperators.domain_size(D::GradientBatch_2D) = "nx×ny×nc×nb"
+AbstractLinearOperators.range_size(D::GradientBatch_2D) = "(nx-1)×(ny-1)×2nc×nb"
+function AbstractLinearOperators.matvecprod(D::GradientBatch_2D{T}, u::AbstractArray{T,4}) where T
+    nx,ny,nc,nb = size(u)
+    return reshape(conv(reshape(u, nx,ny,1,nc*nb), D.stencil), nx-1,ny-1,2*nc,nb)
+end
+function AbstractLinearOperators.matvecprod_adj(D::GradientBatch_2D{T}, v::AbstractArray{T,4}) where T
+    nx,ny,nc,nb = size(v)
+    cdims = DenseConvDims((nx+1,ny+1,1,div(nc,2)*nb), (2,2,1,2))
+    return reshape(∇conv_data(reshape(v, nx,ny,2,div(nc,2)*nb), D.stencil, cdims), nx+1,ny+1,div(nc,2),nb)
+end
+
+function gradient_batch_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1))) where {S<:Real}
+
+    # Stencil
+    D = cat(reshape([T(0) T(1)/h[1]; T(0) T(-1)/h[1]], 2, 2, 1, 1), reshape([T(0) T(0); T(1)/h[2] T(-1)/h[2]], 2, 2, 1, 1); dims=4)
+
+    return GradientBatch_2D{T}(D)
+
+end
+
+Flux.gpu(D::GradientBatch_2D{T}) where T = GradientBatch_2D{T}(gpu(D.stencil))
+Flux.cpu(D::GradientBatch_2D{T}) where T = GradientBatch_2D{T}(cpu(D.stencil))
 
 
 # Projection on vector field

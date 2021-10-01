@@ -91,6 +91,21 @@ function TV_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Un
     return MixedNorm_2D{T,2,1}()∘A∇
 end
 
+struct WeightedGradient_2D{T} <: AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,3}}
+    P::ProjVectorField_2D{T}
+    ∇::Gradient_2D{T}
+end
+
+AbstractLinearOperators.domain_size(A::WeightedGradient_2D) = AbstractLinearOperators.range_size(A.P)[1:2]
+AbstractLinearOperators.range_size(A::WeightedGradient_2D) = AbstractLinearOperators.range_size(A.P)
+AbstractLinearOperators.matvecprod(A::WeightedGradient_2D, u::AbstractArray{T,2}) where T = A.P*(A.∇*u)
+AbstractLinearOperators.matvecprod_adj(A::WeightedGradient_2D, u::AbstractArray{T,3}) where T = adjoint(A.∇)*(adjoint(A.P)*u)
+
+Base.:*(P::ProjVectorField_2D{T}, ∇::Gradient_2D{T}) where T = WeightedGradient_2D{T}(P, ∇)
+
+Flux.gpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.gpu(A.P), Flux.gpu(A.∇))
+Flux.cpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.cpu(A.P), Flux.cpu(A.∇))
+
 
 # Utils
 

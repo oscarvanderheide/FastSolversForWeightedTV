@@ -1,4 +1,4 @@
-using LinearAlgebra, FastSolversForWeightedTV, Flux, TestImages, CUDA, PyPlot
+using LinearAlgebra, FastSolversForWeightedTV, Flux, TestImages, CUDA, Statistics, PyPlot
 CUDA.allowscalar(false)
 using Random; Random.seed!(123)
 
@@ -7,8 +7,12 @@ n = (256, 256)
 y_orig = Float32.(TestImages.shepp_logan(n...)) |> gpu
 y_orig = y_orig/norm(y_orig, Inf)
 
+# Prior contrast
+η = 0.1f0*gradient_mean(y_orig)
+P = structural_weight(y_orig, η)
+
 # TV norm
-g = TV_norm_2D() |> gpu
+g = TV_norm_2D(; weight=P) |> gpu
 ε_orig = g(y_orig)
 
 # Artificial noise
@@ -40,9 +44,9 @@ title("Noisy phantom")
 axis("off")
 subplot(1,2,2)
 imshow(cpu(xproxy); cmap="gray", vmin=vmin, vmax=vmax)
-title(string("TV proxy, ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proxy)))
+title(string("wTV proxy, ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proxy)))
 axis("off")
-savefig("./plots/TVprox.png", dpi=300, transparent=false, bbox_inches="tight")
+savefig("./plots/wTVprox.png", dpi=300, transparent=false, bbox_inches="tight")
 
 # Plot proxy
 figure()
@@ -52,6 +56,6 @@ title("Noisy phantom")
 axis("off")
 subplot(1,2,2)
 imshow(cpu(xproj); cmap="gray", vmin=vmin, vmax=vmax)
-title(string("TV proj., ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proj)))
+title(string("wTV proj., ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", err_proj))
 axis("off")
-savefig("./plots/TVproj.png", dpi=300, transparent=false, bbox_inches="tight")
+savefig("./plots/wTVproj.png", dpi=300, transparent=false, bbox_inches="tight")

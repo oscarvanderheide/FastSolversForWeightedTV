@@ -1,6 +1,6 @@
 #: Gradient operator via convolution
 
-export gradient_2D
+export gradient_2D, structural_weight, gradient_mean
 
 
 # Gradient (linear operator)
@@ -32,3 +32,30 @@ end
 
 Flux.gpu(D::Gradient_2D{T}) where T = Gradient_2D{T}(gpu(D.stencil))
 Flux.cpu(D::Gradient_2D{T}) where T = Gradient_2D{T}(cpu(D.stencil))
+
+
+# Projection on vector field
+
+struct ProjVectorField_2D{T}<:AbstractLinearOperator{AbstractArray{T,3},AbstractArray{T,3}}
+    ∇ŵ::AbstractArray{T,3}
+end
+
+AbstractLinearOperators.domain_size(P::ProjVectorField_2D) = size(P.∇ŵ)
+AbstractLinearOperators.range_size(P::ProjVectorField_2D) = size(P.∇ŵ)
+AbstractLinearOperators.matvecprod(P::ProjVectorField_2D{T}, u::AbstractArray{T,3}) where T = u-ptdot_2D(u,P.∇ŵ).*P.∇ŵ
+AbstractLinearOperators.matvecprod_adj(P::ProjVectorField_2D{T}, u::AbstractArray{T,3}) where T = P*u
+
+structural_weight(P::ProjVectorField_2D) = P.∇ŵ
+function structural_weight(w::AbstractArray{T,2}, η::T) where T
+    ∇ = gradient_2D(; T=T); w isa CuArray && (∇ = ∇ |> gpu)
+    ∇w = ∇*w
+    return ProjVectorField_2D{T}(∇w./ptnorm2_2D(∇w; η=η))
+end
+
+function gradient_mean(w::AbstractArray{T,2}) where T
+    ∇ = gradient_2D(; T=T); w isa CuArray && (∇ = ∇ |> gpu)
+    return sum(ptnorm2_2D(∇*w))/prod(size(w)[1:2])
+end
+
+Flux.gpu(P::ProjVectorField_2D{T}) where T = ProjVectorField_2D{T}(Flux.gpu(structural_weight(P)))
+Flux.cpu(P::ProjVectorField_2D{T}) where T = ProjVectorField_2D{T}(Flux.cpu(structural_weight(P)))

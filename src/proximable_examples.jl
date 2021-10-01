@@ -1,10 +1,10 @@
 #: Utilities for norm functions
 
 export ptdot_2D, ptnorm1_2D, ptnorm2_2D, ptnormInf_2D
-export norm_2D, TV_norm_2D
+export norm_2D, norm_batch_2D, TV_norm_2D, TV_norm_batch_2D
 
 
-# Concrete norm types
+# Mixed norm
 
 struct MixedNorm_2D{T,N1,N2}<:ProximableFunction{T,3} end
 
@@ -14,6 +14,13 @@ struct WeightedMixedNorm_2D{T,N1,N2,WT<:AbstractLinearOperator}<:ProximableFunct
 end
 
 norm_2D(N1::Number, N2::Number; T::DataType=Float32) = MixedNorm_2D{T,N1,N2}()
+
+
+# Mixed norm (batch)
+
+struct MixedNormBatch_2D{T,N1,N2}<:ProximableFunction{T,4} end
+
+norm_batch_2D(N1::Number, N2::Number; T::DataType=Float32) = MixedNormBatch_2D{T,N1,N2}()
 
 
 # L22 norm
@@ -66,6 +73,21 @@ obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,2}, ε::T) where T = sum(Fl
 (::MixedNorm_2D{T,2,1})(p::AbstractArray{T,3}) where T = norm21_2D(p)
 
 
+# L21 norm (batch)
+
+function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNormBatch_2D{T,2,1}, q::AbstractArray{T,4}; ptn::Union{AbstractArray{T,4},Nothing}=nothing) where T
+    ptn === nothing && (ptn = ptnorm2_batch_2D(p; η=eps(T)))
+    nx,ny,nc,nb = size(p)
+    p = reshape(p, nx,ny,2,div(nc,2)*nb)
+    q = reshape(q, nx,ny,2,div(nc,2)*nb)
+    ptn = reshape(ptn, nx,ny,1,div(nc,2)*nb)
+    q .= (T(1).-λ./ptn).*(ptn .>= λ).*p
+    return reshape(q, nx,ny,nc,nb)
+end
+
+(::MixedNormBatch_2D{T,2,1})(p::AbstractArray{T,4}) where T = norm21_batch_2D(p)
+
+
 # L2Inf norm
 
 function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,Inf}, q::AbstractArray{T,3}) where T
@@ -107,6 +129,15 @@ Flux.gpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.gpu(A.
 Flux.cpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.cpu(A.P), Flux.cpu(A.∇))
 
 
+# TV norm (batch)
+
+function TV_norm_batch_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_batch_2D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNormBatch_2D{T,2,1}()∘A∇
+end
+
+
 # Utils
 
 ptdot_2D(v1::AbstractArray{T,3}, v2::AbstractArray{T,3}) where T = sum(v1.*v2; dims=3)[:,:,1]
@@ -114,6 +145,17 @@ ptnorm1_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = abs.(p[:,:,1])+abs.(p[:,
 ptnorm2_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = sqrt.(p[:,:,1].^T(2)+p[:,:,2].^T(2).+η^2)
 ptnormInf_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = maximum(abs.(p).+η; dims=3)[:,:,1]
 
+function ptnorm2_batch_2D(p::AbstractArray{T,4}; η::T=T(0)) where T
+    nx,ny,nc,nb = size(p)
+    p = reshape(p, nx,ny,2,div(nc,2)*nb)
+    return reshape(sqrt.(p[:,:,1:1,:].^T(2)+p[:,:,2:2,:].^T(2).+η^2), nx,ny,div(nc,2),nb)
+end
+
 norm21_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = sum(ptnorm2_2D(v; η=η))
 norm22_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = sqrt(sum(ptnorm2_2D(v; η=η).^2))
 norm2Inf_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = maximum(ptnorm2_2D(v; η=η))
+
+function norm21_batch_2D(v::AbstractArray{T,4}; η::T=T(0)) where T
+    _,_,nc,nb = size(v)
+    return reshape(sum(ptnorm2_batch_2D(v; η=η); dims=(1,2)), div(nc,2), nb)
+end

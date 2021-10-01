@@ -1,7 +1,7 @@
 #: Utilities for norm functions
 
-export ptdot_2D, ptnorm1_2D, ptnorm2_2D, ptnormInf_2D, normTV_2D
-export l22_norm_2D, l21_norm_2D, l2Inf_norm_2D
+export ptdot_2D, ptnorm1_2D, ptnorm2_2D, ptnormInf_2D
+export norm_2D, TV_norm_2D
 
 
 # Concrete norm types
@@ -13,7 +13,7 @@ struct WeightedMixedNorm_2D{T,N1,N2,WT<:AbstractLinearOperator}<:ProximableFunct
     solver_opt::OptimOptions
 end
 
-norm_2D(N1::Int64, N2::Int64; T::DataType=Float32) = MixedNorm_2D{T,N1,N2}()
+norm_2D(N1::Number, N2::Number; T::DataType=Float32) = MixedNorm_2D{T,N1,N2}()
 
 
 # L22 norm
@@ -45,13 +45,23 @@ function project!(p::AbstractArray{T,3}, ε::T, g::MixedNorm_2D{T,2,1}, q::Abstr
     return proxy!(p, λ, g, q; ptn=ptn)
 end
 
-function pareto_search_proj21(ptn::AbstractArray{T,2}, ε::T) where T
-    ptn = sort(vec(ptn))
-    Σptn = cumsum(ptn[end:-1:1])[end:-1:1]-(length(ptn):-1:1).*ptn
-    val = Σptn .<= ε
-    i = length(val)-sum(val)
-    CUDA.@allowscalar return ptn[i]+(ε-Σptn[i])/(Σptn[i+1]-Σptn[i])*(ptn[i+1]-ptn[i])
-end
+pareto_search_proj21(ptn::AbstractArray{T,2}, ε::T) where T = T(solve(ZeroProblem(λ -> obj_pareto_search_proj21(λ, ptn, ε), T(0)), Order1()))
+
+obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,2}, ε::T) where T = sum(Flux.relu.(ptn.-λ))-ε
+
+# function pareto_search_proj21(ptn::AbstractArray{T,2}, ε::T) where T
+#     f = λ -> obj_pareto_search_proj21_Newton(λ, ptn, ε)
+#     return T(solve(ZeroProblem(f, T(0)), Roots.Newton()))
+# end
+
+# function obj_pareto_search_proj21_Newton(λ::T, ptn::AbstractArray{T,2}, ε::T) where T
+#     dp = ptn.-λ
+#     f  =  sum(Flux.relu.(dp))-ε
+#     df = -sum(∇relu(dp))
+#     return (f, f/df)
+# end
+
+# ∇relu(x::AbstractArray{T,N}) where {T,N} = (sign.(x).+T(1))./T(2)
 
 (::MixedNorm_2D{T,2,1})(p::AbstractArray{T,3}) where T = norm21_2D(p)
 
@@ -59,7 +69,7 @@ end
 # L2Inf norm
 
 function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,Inf}, q::AbstractArray{T,3}) where T
-    project!(p, λ, l21_norm_2D(; T=T), q)
+    project!(p, λ, norm_2D(2,1; T=T), q)
     return q .= p.-q
 end
 
@@ -73,30 +83,13 @@ end
 (::MixedNorm_2D{T,2,Inf})(p::AbstractArray{T,3}) where T = norm2Inf_2D(p)
 
 
-# Weighted norm
+# TV norm
 
-function proxy!(y::AbstractArray{T,2}, λ::T, g::WeightedMixedNorm_2D{T,N1,N2}, x::AbstractArray{T,2}) where {T,N1,N2}
-
-    # Objective function (dual problem)
-    f = leastsquares_misfit(λ*adjoint(g.weight), y)+λ*conjugate(norm_2D(N1, N2; T=T))
-
-    # Minimization (dual variable)
-    p = similar(y, size(y)..., 3); p .= T(0)
-    p = minimize(f, p, g.solver_opt)
-
-    # Dual to primal solution
-    x .= y-λ*adjoint(g.A)*p
-
-    return x
-
+function TV_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_2D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_2D{T,2,1}()∘A∇
 end
-
-function project!(p::AbstractArray{T,3}, ε::T, ::MixedNorm_2D{T,2,2}, q::AbstractArray{T,3}) where T
-    np = norm(p)
-    np <= ε ? (return q .= p) : (return q .= ε*p/np)
-end
-
-(::MixedNorm_2D{T,2,2})(p::AbstractArray{T,3}) where T = norm(p)
 
 
 # Utils

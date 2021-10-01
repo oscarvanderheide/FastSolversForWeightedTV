@@ -19,6 +19,8 @@ project!(y::AbstractArray{T,N}, ε::T, g::ScaledProximableFun{T,N}, x::AbstractA
 
 Base.:*(c::T, g::ProximableFunction{T,N}) where {T,N} = ScaledProximableFun{T,N}(c, g)
 Base.:*(c::T, g::ScaledProximableFun{T,N}) where {T,N} = ScaledProximableFun{T,N}(c*g.c, g.g)
+Base.:/(g::ProximableFunction{T,N}, c::T) where {T,N} = ScaledProximableFun{T,N}(T(1)/c, g)
+Base.:/(g::ScaledProximableFun{T,N}, c::T) where {T,N} = ScaledProximableFun{T,N}(g.c/c, g.g)
 
 
 # Conjugation of proximable functions
@@ -57,7 +59,7 @@ struct SubLevelSet{T,N}<:ProjectionableSet{T,N}
     ε::T
 end
 
-Base.:≤(g::ProximableFunction{T,N}, ε::T) = SubLevelSet{T,N}(g, ε)
+Base.:≤(g::ProximableFunction{T,N}, ε::T) where {T,N} = SubLevelSet{T,N}(g, ε)
 
 project!(x::AbstractArray{T,N}, C::SubLevelSet{T,N}, y::AbstractArray{T,N}) where {T,N} = project!(x, C.ε, C.g, y)
 project!(x::AbstractArray{T,N}, C::SubLevelSet{T,N}, y::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = project!(x, C.ε, C.g, y, opt)
@@ -85,16 +87,18 @@ struct WeightedProximableFun{T,N1,N2}<:ProximableFunction{T,N1}
     A::AbstractLinearOperator{<:AbstractArray{T,N1},<:AbstractArray{T,N2}}
 end
 
-Base.:∘(g::ProximableFunction{T,N2}, A::AbstractLinearOperator{DT,RT}) where {T,N1,N2,DT<:AbstractArray{T,N1},RT<:AbstractArray{T,N2}} = WeightedProximableFun{T,N1}(g, A)
+Base.:∘(g::ProximableFunction{T,N2}, A::AbstractLinearOperator{DT,RT}) where {T,N1,N2,DT<:AbstractArray{T,N1},RT<:AbstractArray{T,N2}} = WeightedProximableFun{T,N1,N2}(g, A)
 
 function proxy!(y::AbstractArray{T,N1}, λ::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
 
     # Objective function (dual problem)
-    f = leastsquares_misfit(λ*adjoint(g.A), y)+λ*conjugate(g.g)
+    gT = conjugate(g.g)/λ
+    f = leastsquares_misfit(adjoint(g.A), y/λ)+gT
 
     # Minimization (dual variable)
-    p = similar(y, g.A.range_size); p .= T(0)
-    p = minimize(f, p, opt)
+    p0 = proxy(opt.steplength/λ*g.A*y, T(1)/λ, gT)
+    # p0 = T(0)*proxy(opt.steplength/λ*g.A*y, T(1)/λ, gT)
+    p = minimize(f, p0, opt)
 
     # Dual to primal solution
     return x .= y-λ*adjoint(g.A)*p
@@ -104,42 +108,53 @@ end
 function project!(y::AbstractArray{T,N1}, ε::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
 
     # Objective function (dual problem)
-    f = leastsquares_misfit(adjoint(g.A), y)+conjugate(indicator(g.g ≤ ε))
+    gT = conjugate(indicator(g.g ≤ ε))
+    f = leastsquares_misfit(adjoint(g.A), y)+gT
 
     # Minimization (dual variable)
-    p = similar(y, g.A.range_size); p .= T(0)
-    p = minimize(f, p, opt)
+    p0 = proxy(opt.steplength*g.A*y, T(1), gT)
+    p = minimize(f, p0, opt)
 
     # Dual to primal solution
-    return x .= y-λ*adjoint(g.A)*p
+    return x .= y-adjoint(g.A)*p
 
 end
+
+(g::WeightedProximableFun{T,N1,N2})(x::AbstractArray{T,N1}) where {T,N1,N2} = g.g(g.A*x)
+
+Flux.gpu(g::WeightedProximableFun{T,N1,N2}) where {T,N1,N2} = WeightedProximableFun{T,N1,N2}(g.g, gpu(g.A))
 
 
 # Proximable function evaluation
 
+
 struct ProxyObjFun{T,N} <: DifferentiableFunction{T,N}
     λ::T
     g::ProximableFunction{T,N}
+    opt::Union{Nothing,OptimOptions}
 end
 
-proxy_objfun(λ::T, g::ProximableFunction{T,N}) where {T,N} = ProxyObjFun{T,N}(λ, g)
+proxy_objfun(λ::T, g::ProximableFunction{T,N}) where {T,N} = ProxyObjFun{T,N}(λ, g, nothing)
+proxy_objfun(λ::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = ProxyObjFun{T,N}(λ, g, opt)
 
 function grad!(f::ProxyObjFun{T,N}, y::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}) where {T,N}
-    x = proxy(y, f.λ, f.g)
+    f.opt === nothing ? (x = proxy(y, f.λ, f.g)) : (x = proxy(y, f.λ, f.g, f.opt))
     g !== nothing && (g .= y-x)
     return T(0.5)*norm(x-y)^2+f.λ*f.g(x)
 end
 
+
 struct ProjObjFun{T,N} <: DifferentiableFunction{T,N}
     ε::T
     g::ProximableFunction{T,N}
+    opt::Union{Nothing,OptimOptions}
 end
 
-proj_objfun(ε::T, g::ProximableFunction{T,N}) where {T,N} = ProjObjFun{T,N}(ε, g)
+proj_objfun(ε::T, g::ProximableFunction{T,N}) where {T,N} = ProjObjFun{T,N}(ε, g, nothing)
+proj_objfun(ε::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = ProjObjFun{T,N}(ε, g, opt)
 
 function grad!(f::ProjObjFun{T,N}, y::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}) where {T,N}
-    x = project(y, f.ε, f.g)
+    f.opt === nothing ? (x = project(y, f.ε, f.g)) : (x = project(y, f.ε, f.g, f.opt))
     g !== nothing && (g .= y-x)
     return T(0.5)*norm(x-y)^2
 end

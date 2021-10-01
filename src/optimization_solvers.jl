@@ -1,22 +1,11 @@
 #: Optimization functions and solvers
 
-export OptimOptions, OptimProxy, minimize, minimize!
-export OptFISTA, opt_fista, minimize_fista!
-export OptAdaptiveProxy, opt_adaptive_proxy, minimize_adaptive_proxy!, minimize_adaptive_proxy
-
-
-# Optimization abstract type
-
-abstract type OptimOptions end
-abstract type OptimProxy<:OptimOptions end
-
-minimize(fun::MinimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize!(fun, x0, opt, similar(x0))
-minimize_debug(fun::MinimizableFunction{T,N}, x0::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = minimize_debug!(fun, x0, opt, similar(x0))
+export OptFISTA, opt_fista
 
 
 # Options type for FISTA
 
-mutable struct OptFISTA<:OptimProxy
+mutable struct OptFISTA<:OptimOptions
     steplength::Union{Nothing,Number}
     niter::Int64
     tol_x::Union{Nothing,Number}

@@ -1,7 +1,7 @@
 #: Utilities for norm functions
 
 export ptdot_2D, ptnorm1_2D, ptnorm2_2D, ptnormInf_2D
-export norm_2D, norm_batch_2D, TV_norm_2D, TV_norm_batch_2D
+export norm_2D, norm_batch_2D, L2V_norm_2D, LInfV_norm_2D, TV_norm_2D, TV_norm_batch_2D
 
 
 # Mixed norm
@@ -103,6 +103,24 @@ function project!(p::AbstractArray{T,3}, ε::T, ::MixedNorm_2D{T,2,Inf}, q::Abst
 end
 
 (::MixedNorm_2D{T,2,Inf})(p::AbstractArray{T,3}) where T = norm2Inf_2D(p)
+
+
+# L2V norm
+
+function L2V_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_2D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_2D{T,2,2}()∘A∇
+end
+
+
+# LInfV norm
+
+function LInfV_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_2D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_2D{T,2,Inf}()∘A∇
+end
 
 
 # TV norm

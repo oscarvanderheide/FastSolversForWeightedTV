@@ -1,7 +1,8 @@
 #: Utilities for norm functions
 
-export ptdot_2D, ptnorm1_2D, ptnorm2_2D, ptnormInf_2D
+export ptdot, ptnorm1, ptnorm2, ptnormInf
 export norm_2D, norm_batch_2D, L2V_norm_2D, LInfV_norm_2D, TV_norm_2D, TV_norm_batch_2D
+export norm_3D, norm_batch_3D, L2V_norm_3D, LInfV_norm_3D, TV_norm_3D, TV_norm_batch_3D
 
 
 # Mixed norm
@@ -156,24 +157,43 @@ function TV_norm_batch_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weig
 end
 
 
-# Utils
+# Utils (2-D)
 
-ptdot_2D(v1::AbstractArray{T,3}, v2::AbstractArray{T,3}) where T = sum(v1.*v2; dims=3)[:,:,1]
-ptnorm1_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = abs.(p[:,:,1])+abs.(p[:,:,2]).+η
-ptnorm2_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = sqrt.(p[:,:,1].^T(2)+p[:,:,2].^T(2).+η^2)
-ptnormInf_2D(p::AbstractArray{T,3}; η::T=T(0)) where T = maximum(abs.(p).+η; dims=3)[:,:,1]
-
-function ptnorm2_batch_2D(p::AbstractArray{T,4}; η::T=T(0)) where T
+ptdot(v1::AbstractArray{T,3}, v2::AbstractArray{T,3}) where T = sum(conj.(v1).*v2; dims=3)[:,:,1]
+ptnorm1(p::AbstractArray{T,3}; η::T=T(0)) where T = abs.(p[:,:,1])+abs.(p[:,:,2]).+abs(η)
+ptnorm2(p::AbstractArray{T,3}; η::T=T(0)) where T = sqrt.(abs.(p[:,:,1]).^2+abs.(p[:,:,2]).^2 .+abs(η)^2)
+ptnormInf(p::AbstractArray{T,3}; η::T=T(0)) where T = maximum(abs.(p).+abs(η); dims=3)[:,:,1]
+function ptnorm2_batch(p::AbstractArray{T,4}; η::T=T(0)) where T
     nx,ny,nc,nb = size(p)
     p = reshape(p, nx,ny,2,div(nc,2)*nb)
-    return reshape(sqrt.(p[:,:,1:1,:].^T(2)+p[:,:,2:2,:].^T(2).+η^2), nx,ny,div(nc,2),nb)
+    return reshape(sqrt.(abs.(p[:,:,1:1,:]).^2+abs.(p[:,:,2:2,:]).^2 .+abs(η)^2), nx,ny,div(nc,2),nb)
 end
 
-norm21_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = sum(ptnorm2_2D(v; η=η))
-norm22_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = sqrt(sum(ptnorm2_2D(v; η=η).^2))
-norm2Inf_2D(v::AbstractArray{T,3}; η::T=T(0)) where T = maximum(ptnorm2_2D(v; η=η))
-
-function norm21_batch_2D(v::AbstractArray{T,4}; η::T=T(0)) where T
+norm21(v::AbstractArray{T,3}; η::T=T(0)) where T = sum(ptnorm2(v; η=η))
+norm22(v::AbstractArray{T,3}; η::T=T(0)) where T = sqrt(sum(ptnorm2(v; η=η).^2))
+norm2Inf(v::AbstractArray{T,3}; η::T=T(0)) where T = maximum(ptnorm2(v; η=η))
+function norm21_batch(v::AbstractArray{T,4}; η::T=T(0)) where T
     _,_,nc,nb = size(v)
-    return reshape(sum(ptnorm2_batch_2D(v; η=η); dims=(1,2)), div(nc,2), nb)
+    return reshape(sum(ptnorm2_batch(v; η=η); dims=(1,2)), div(nc,2), nb)
+end
+
+
+# Utils (3-D)
+
+ptdot(v1::AbstractArray{T,4}, v2::AbstractArray{T,4}) where T = sum(conj.(v1).*v2; dims=4)[:,:,:,1]
+ptnorm1(p::AbstractArray{T,4}; η::T=T(0)) where T = abs.(p[:,:,:,1])+abs.(p[:,:,:,2])+abs.(p[:,:,:,3]).+abs(η)
+ptnorm2(p::AbstractArray{T,4}; η::T=T(0)) where T = sqrt.(abs.(p[:,:,:,1]).^2+abs.(p[:,:,:,2]).^2+abs.(p[:,:,:,3]).^2 .+abs(η)^2)
+ptnormInf(p::AbstractArray{T,4}; η::T=T(0)) where T = maximum(abs.(p).+η; dims=4)[:,:,:,1]
+function ptnorm2_batch(p::AbstractArray{T,5}; η::T=T(0)) where T
+    nx,ny,nz,nc,nb = size(p)
+    p = reshape(p, nx,ny,nz,2,div(nc,2)*nb)
+    return reshape(sqrt.(abs.(p[:,:,:,1:1,:]).^2+abs.(p[:,:,:,2:2,:]).^2+abs.(p[:,:,:,3:3,:]).^2 .+abs(η)^2), nx,ny,nz,div(nc,2),nb)
+end
+
+norm21(v::AbstractArray{T,4}; η::T=T(0)) where T = sum(ptnorm2(v; η=η))
+norm22(v::AbstractArray{T,4}; η::T=T(0)) where T = sqrt(sum(ptnorm2(v; η=η).^2))
+norm2Inf(v::AbstractArray{T,4}; η::T=T(0)) where T = maximum(ptnorm2(v; η=η))
+function norm21_batch(v::AbstractArray{T,5}; η::T=T(0)) where T
+    _,_,_,nc,nb = size(v)
+    return reshape(sum(ptnorm2_batch(v; η=η); dims=(1,2,3)), div(nc,2), nb)
 end

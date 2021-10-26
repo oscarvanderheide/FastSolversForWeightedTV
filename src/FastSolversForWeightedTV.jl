@@ -13,8 +13,11 @@ include("./optimization_solvers.jl")
 # Differentiable function examples
 include("./differentiable_examples.jl")
 
-# # Gradient operator
+# Gradient operator
 include("./gradient_operator.jl")
+
+# Vector-field projection operator
+include("./vectorfieldproj_operator.jl")
 
 # Proximable function examples
 include("./proximable_examples.jl")

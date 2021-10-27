@@ -105,7 +105,8 @@ obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,2}, ε::T) where T = sum(Fl
 
 function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNorm_3D{T,2,2,1}, q::AbstractArray{T,4}; ptn::Union{AbstractArray{T,3},Nothing}=nothing) where T
     ptn === nothing && (ptn = ptnorm2(p; η=T(eps(real(T)))))
-    return q .= (T(1).-λ./ptn).*(ptn .>= λ).*p
+    q .= (T(1).-λ./ptn).*(ptn .>= λ).*p
+    return q
 end
 
 function project!(p::AbstractArray{T,4}, ε::T, g::MixedNorm_3D{T,2,2,1}, q::AbstractArray{T,4}) where T

@@ -37,11 +37,13 @@ function minimize_fista!(fun::DiffPlusProxFun{T,N}, initial_estimate::DT, steple
     for i = 1:niter
 
         grad!(fun.f, x0, xtmp)                     # Compute gradient
-        xtmp .= x0-steplength*xtmp                 # Gradient update
+        # xtmp .= x0-steplength*xtmp                 # Gradient update
+        xtmp .*= -steplength; xtmp .+= x0          # Gradient update
         proxy!(xtmp, steplength, fun.g, x)         # Compute proxy
         if nesterov                                # > Nesterov two-step update:
             t = T(0.5)*(T(1)+sqrt(T(1)+T(4)*t0^2)) # - compute dynamic step size
-            x .= x+(t0-T(1))/t*(x-x0)              # - update momentum
+            # x .+= (t0-T(1))/t*(x-x0)               # - update momentum
+            x .*= (t+t0-T(1))/t; x .-= (t0-T(1))/t*x0 # - update momentum
             t0 = t                                 # - update step size
         end                                        # <
 

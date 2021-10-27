@@ -16,9 +16,9 @@ end
 
 leastsquares_misfit(A::AbstractLinearOperator{DT,RT}, y::RT) where {T,N1,N2,DT<:AbstractArray{T,N1},RT<:AbstractArray{T,N2}} = LeastSquaresMisfit{T,N1,typeof(A),RT}(A, y)
 
-function grad!(f::LeastSquaresMisfit{T,N,AT,YT}, x::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}) where {T,N,AT,YT}
+function grad!(f::LeastSquaresMisfit{T,N,AT,YT}, x::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}; eval::Bool=false) where {T,N,AT,YT}
     r = f.A*x-f.y
-    fval = T(0.5)*norm(r)^2
+    eval ? (fval = T(0.5)*norm(r)^2) : (fval = nothing)
     g !== nothing && (g .= adjoint(f.A)*r)
     return fval
 end

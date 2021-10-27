@@ -11,12 +11,12 @@ h3d = (abs(randn(T)), abs(randn(T)), abs(randn(T)))
 # Operators
 flag_gpu = true
 # flag_gpu = false
-∇2d    = gradient_2D(; h=h2d, T=T);                flag_gpu && (∇2d   = ∇2d |> gpu)
-∇2d_c  = gradient_2D(; h=h2d, T=Complex{T});       flag_gpu && (∇2d_c = ∇2d_c |> gpu)
-∇2db   = gradient_batch_2D(; h=h2d, T=T);          flag_gpu && (∇2d   = ∇2d |> gpu)
-∇2db_c = gradient_batch_2D(; h=h2d, T=Complex{T}); flag_gpu && (∇2d_c = ∇2d_c |> gpu)
-∇3d    = gradient_3D(; h=h3d, T=T);                flag_gpu && (∇3d   = ∇3d |> gpu)
-∇3d_c  = gradient_3D(; h=h3d, T=Complex{T});       flag_gpu && (∇3d_c = ∇3d_c |> gpu)
+∇2d    = gradient_2D(; h=h2d, T=T);                flag_gpu && (∇2d    = ∇2d |> gpu)
+∇2d_c  = gradient_2D(; h=h2d, T=Complex{T});       flag_gpu && (∇2d_c  = ∇2d_c |> gpu)
+∇2db   = gradient_batch_2D(; h=h2d, T=T);          flag_gpu && (∇2db   = ∇2db |> gpu)
+∇2db_c = gradient_batch_2D(; h=h2d, T=Complex{T}); flag_gpu && (∇2db_c = ∇2db_c |> gpu)
+∇3d    = gradient_3D(; h=h3d, T=T);                flag_gpu && (∇3d    = ∇3d |> gpu)
+∇3d_c  = gradient_3D(; h=h3d, T=Complex{T});       flag_gpu && (∇3d_c  = ∇3d_c |> gpu)
 
 # Adjoint test (∇2d)
 u = randn(T, n2d);                   flag_gpu && (u = u |> gpu)

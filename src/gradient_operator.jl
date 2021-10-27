@@ -154,8 +154,8 @@ struct ComplexGradientBatch_2D{T}<:AbstractGradientBatch_2D{Complex{T}}
     ∇::GradientBatch_2D{T}
 end
 
-AbstractLinearOperators.domain_size(D::ComplexGradientBatch_2D) = domain_size(D)
-AbstractLinearOperators.range_size(D::ComplexGradientBatch_2D) = range_size(D)
+AbstractLinearOperators.domain_size(D::ComplexGradientBatch_2D) = domain_size(D.∇)
+AbstractLinearOperators.range_size(D::ComplexGradientBatch_2D) = range_size(D.∇)
 AbstractLinearOperators.matvecprod(D::ComplexGradientBatch_2D{T}, u::AbstractArray{Complex{T},4}) where {T<:Real} = D.∇*real.(u)+1im*D.∇*imag.(u)
 AbstractLinearOperators.matvecprod_adj(D::ComplexGradientBatch_2D{T}, v::AbstractArray{Complex{T},4}) where {T<:Real} = adjoint(D.∇)*real.(v)+1im*adjoint(D.∇)*imag.(v)
 

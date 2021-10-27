@@ -2,10 +2,10 @@
 
 export ptdot, ptnorm1, ptnorm2, ptnormInf
 export norm_2D, norm_batch_2D, L2V_norm_2D, LInfV_norm_2D, TV_norm_2D, TV_norm_batch_2D
-export norm_3D, norm_batch_3D, L2V_norm_3D, LInfV_norm_3D, TV_norm_3D, TV_norm_batch_3D
+export norm_3D,                L2V_norm_3D, LInfV_norm_3D, TV_norm_3D
 
 
-# Mixed norm
+# Mixed norm (2-D)
 
 struct MixedNorm_2D{T,N1,N2}<:ProximableFunction{T,3} end
 
@@ -17,14 +17,26 @@ end
 norm_2D(N1::Number, N2::Number; T::DataType=Float32) = MixedNorm_2D{T,N1,N2}()
 
 
-# Mixed norm (batch)
+# Mixed norm (3-D)
+
+struct MixedNorm_3D{T,N1,N2,N3}<:ProximableFunction{T,4} end
+
+struct WeightedMixedNorm_3D{T,N1,N2,N3,WT<:AbstractLinearOperator}<:ProximableFunction{T,4}
+    weight::WT
+    solver_opt::OptimOptions
+end
+
+norm_3D(N1::Number, N2::Number, N3::Number; T::DataType=Float32) = MixedNorm_3D{T,N1,N2,N3}()
+
+
+# Mixed norm (2-D, batch)
 
 struct MixedNormBatch_2D{T,N1,N2}<:ProximableFunction{T,4} end
 
 norm_batch_2D(N1::Number, N2::Number; T::DataType=Float32) = MixedNormBatch_2D{T,N1,N2}()
 
 
-# L22 norm
+# L22 norm (2-D)
 
 function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,2}, q::AbstractArray{T,3}) where T
     np = norm(p)
@@ -39,15 +51,30 @@ end
 (::MixedNorm_2D{T,2,2})(p::AbstractArray{T,3}) where T = norm(p)
 
 
-# L21 norm
+# L222 norm (3-D)
+
+function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNorm_3D{T,2,2,2}, q::AbstractArray{T,4}) where T
+    np = norm(p)
+    np <= λ ? (return q .= T(0)) : (return q .= (T(1)-λ/np)*p)
+end
+
+function project!(p::AbstractArray{T,4}, ε::T, ::MixedNorm_3D{T,2,2,2}, q::AbstractArray{T,4}) where T
+    np = norm(p)
+    np <= ε ? (return q .= p) : (return q .= ε*p/np)
+end
+
+(::MixedNorm_3D{T,2,2,2})(p::AbstractArray{T,4}) where T = norm(p)
+
+
+# L21 norm (2-D)
 
 function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,1}, q::AbstractArray{T,3}; ptn::Union{AbstractArray{T,2},Nothing}=nothing) where T
-    ptn === nothing && (ptn = ptnorm2_2D(p; η=eps(T)))
+    ptn === nothing && (ptn = ptnorm2(p; η=eps(T)))
     return q .= (T(1).-λ./ptn).*(ptn .>= λ).*p
 end
 
 function project!(p::AbstractArray{T,3}, ε::T, g::MixedNorm_2D{T,2,1}, q::AbstractArray{T,3}) where T
-    ptn = ptnorm2_2D(p)
+    ptn = ptnorm2(p)
     sum(ptn) <= ε && (return q .= p)
     λ = pareto_search_proj21(ptn, ε)
     return proxy!(p, λ, g, q; ptn=ptn)
@@ -71,13 +98,34 @@ obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,2}, ε::T) where T = sum(Fl
 
 # ∇relu(x::AbstractArray{T,N}) where {T,N} = (sign.(x).+T(1))./T(2)
 
-(::MixedNorm_2D{T,2,1})(p::AbstractArray{T,3}) where T = norm21_2D(p)
+(::MixedNorm_2D{T,2,1})(p::AbstractArray{T,3}) where T = norm21(p)
 
 
-# L21 norm (batch)
+# L221 norm (3-D)
+
+function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNorm_3D{T,2,2,1}, q::AbstractArray{T,4}; ptn::Union{AbstractArray{T,3},Nothing}=nothing) where T
+    ptn === nothing && (ptn = ptnorm2(p; η=T(eps(real(T)))))
+    return q .= (T(1).-λ./ptn).*(ptn .>= λ).*p
+end
+
+function project!(p::AbstractArray{T,4}, ε::T, g::MixedNorm_3D{T,2,2,1}, q::AbstractArray{T,4}) where T
+    ptn = ptnorm2(p)
+    sum(ptn) <= ε && (return q .= p)
+    λ = pareto_search_proj221(ptn, ε)
+    return proxy!(p, λ, g, q; ptn=ptn)
+end
+
+pareto_search_proj221(ptn::AbstractArray{T,3}, ε::T) where T = T(solve(ZeroProblem(λ -> obj_pareto_search_proj221(λ, ptn, ε), T(0)), Order1()))
+
+obj_pareto_search_proj221(λ::T, ptn::AbstractArray{T,3}, ε::T) where T = sum(Flux.relu.(ptn.-λ))-ε
+
+(::MixedNorm_3D{T,2,2,1})(p::AbstractArray{T,4}) where T = norm21(p)
+
+
+# L21 norm (2-D, batch)
 
 function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNormBatch_2D{T,2,1}, q::AbstractArray{T,4}; ptn::Union{AbstractArray{T,4},Nothing}=nothing) where T
-    ptn === nothing && (ptn = ptnorm2_batch_2D(p; η=eps(T)))
+    ptn === nothing && (ptn = ptnorm2_batch(p; η=eps(T)))
     nx,ny,nc,nb = size(p)
     p = reshape(p, nx,ny,2,div(nc,2)*nb)
     q = reshape(q, nx,ny,2,div(nc,2)*nb)
@@ -86,10 +134,10 @@ function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNormBatch_2D{T,2,1}, q::Abs
     return reshape(q, nx,ny,nc,nb)
 end
 
-(::MixedNormBatch_2D{T,2,1})(p::AbstractArray{T,4}) where T = norm21_batch_2D(p)
+(::MixedNormBatch_2D{T,2,1})(p::AbstractArray{T,4}) where T = norm21_batch(p)
 
 
-# L2Inf norm
+# L2Inf norm (2-D)
 
 function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,Inf}, q::AbstractArray{T,3}) where T
     project!(p, λ, norm_2D(2,1; T=T), q)
@@ -97,13 +145,30 @@ function proxy!(p::AbstractArray{T,3}, λ::T, ::MixedNorm_2D{T,2,Inf}, q::Abstra
 end
 
 function project!(p::AbstractArray{T,3}, ε::T, ::MixedNorm_2D{T,2,Inf}, q::AbstractArray{T,3}) where T
-    ptn = ptnorm2_2D(p; η=eps(T))
+    ptn = ptnorm2(p; η=eps(T))
     val = ptn .>= ε
     q .= p.*(ε*val./ptn+(!).(val))
     return q
 end
 
-(::MixedNorm_2D{T,2,Inf})(p::AbstractArray{T,3}) where T = norm2Inf_2D(p)
+(::MixedNorm_2D{T,2,Inf})(p::AbstractArray{T,3}) where T = norm2Inf(p)
+
+
+# L22Inf norm (3-D)
+
+function proxy!(p::AbstractArray{T,4}, λ::T, ::MixedNorm_3D{T,2,2,Inf}, q::AbstractArray{T,4}) where T
+    project!(p, λ, norm_3D(2,2,1; T=T), q)
+    return q .= p.-q
+end
+
+function project!(p::AbstractArray{T,4}, ε::T, ::MixedNorm_3D{T,2,2,Inf}, q::AbstractArray{T,4}) where T
+    ptn = ptnorm2(p; η=eps(T))
+    val = ptn .>= ε
+    q .= p.*(ε*val./ptn+(!).(val))
+    return q
+end
+
+(::MixedNorm_3D{T,2,2,Inf})(p::AbstractArray{T,4}) where T = norm2Inf(p)
 
 
 # L2V norm
@@ -112,6 +177,15 @@ function L2V_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::U
     ∇ = gradient_2D(; T=T, h=h)
     weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
     return MixedNorm_2D{T,2,2}()∘A∇
+end
+
+
+# L2V norm (3-D)
+
+function L2V_norm_3D(; T::DataType=Float32, h::Tuple{S,S,S}=(T(1),T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_3D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_3D{T,2,2,2}()∘A∇
 end
 
 
@@ -124,13 +198,34 @@ function LInfV_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight:
 end
 
 
-# TV norm
+# LInfV norm (3-D)
+
+function LInfV_norm_3D(; T::DataType=Float32, h::Tuple{S,S,S}=(T(1),T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_3D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_3D{T,2,2,Inf}()∘A∇
+end
+
+
+# TV norm (2-D)
 
 function TV_norm_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
     ∇ = gradient_2D(; T=T, h=h)
     weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
     return MixedNorm_2D{T,2,1}()∘A∇
 end
+
+
+# TV norm (3-D)
+
+function TV_norm_3D(; T::DataType=Float32, h::Tuple{S,S,S}=(T(1),T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
+    ∇ = gradient_3D(; T=T, h=h)
+    weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
+    return MixedNorm_3D{T,2,2,1}()∘A∇
+end
+
+
+# Weighted gradient (2-D)
 
 struct WeightedGradient_2D{T} <: AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,3}}
     P::ProjVectorField_2D{T}
@@ -148,7 +243,25 @@ Flux.gpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.gpu(A.
 Flux.cpu(A::WeightedGradient_2D{T}) where T = WeightedGradient_2D{T}(Flux.cpu(A.P), Flux.cpu(A.∇))
 
 
-# TV norm (batch)
+# Weighted gradient (3-D)
+
+struct WeightedGradient_3D{T} <: AbstractLinearOperator{AbstractArray{T,3},AbstractArray{T,4}}
+    P::ProjVectorField_3D{T}
+    ∇::Gradient_3D{T}
+end
+
+AbstractLinearOperators.domain_size(A::WeightedGradient_3D) = AbstractLinearOperators.range_size(A.P)[1:2]
+AbstractLinearOperators.range_size(A::WeightedGradient_3D) = AbstractLinearOperators.range_size(A.P)
+AbstractLinearOperators.matvecprod(A::WeightedGradient_3D, u::AbstractArray{T,3}) where T = A.P*(A.∇*u)
+AbstractLinearOperators.matvecprod_adj(A::WeightedGradient_3D, u::AbstractArray{T,4}) where T = adjoint(A.∇)*(adjoint(A.P)*u)
+
+Base.:*(P::ProjVectorField_3D{T}, ∇::Gradient_3D{T}) where T = WeightedGradient_3D{T}(P, ∇)
+
+Flux.gpu(A::WeightedGradient_3D{T}) where T = WeightedGradient_3D{T}(Flux.gpu(A.P), Flux.gpu(A.∇))
+Flux.cpu(A::WeightedGradient_3D{T}) where T = WeightedGradient_3D{T}(Flux.cpu(A.P), Flux.cpu(A.∇))
+
+
+# TV norm (2-D, batch)
 
 function TV_norm_batch_2D(; T::DataType=Float32, h::Tuple{S,S}=(T(1),T(1)), weight::Union{Nothing,AbstractLinearOperator}=nothing) where {S<:Number}
     ∇ = gradient_batch_2D(; T=T, h=h)

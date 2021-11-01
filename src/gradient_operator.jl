@@ -13,34 +13,33 @@ abstract type AbstractGradient_3D{T}<:AbstractLinearOperator{AbstractArray{T,3},
 # Gradient (2D)
 
 struct Gradient_2D{T}<:AbstractGradient_2D{T}
+    n::NTuple{2,Int64}
     stencil::AbstractArray{T,4}
 end
 
-AbstractLinearOperators.domain_size(D::Gradient_2D) = "nx×ny"
-AbstractLinearOperators.range_size(D::Gradient_2D) = "(nx-1)×(ny-1)×2"
-function AbstractLinearOperators.matvecprod(D::Gradient_2D{T}, u::AbstractArray{T,2}) where {T<:Real}
-    nx,ny = size(u)
-    return reshape(conv(reshape(u, nx,ny,1,1), D.stencil), nx-1,ny-1,2)
-end
+AbstractLinearOperators.domain_size(D::Gradient_2D) = D.n
+AbstractLinearOperators.range_size(D::Gradient_2D) = (D.n[1]-1, D.n[2]-1, 2)
+AbstractLinearOperators.matvecprod(D::Gradient_2D{T}, u::AbstractArray{T,2}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],1,1), D.stencil), D.n[1]-1,D.n[2]-1,2)
 function AbstractLinearOperators.matvecprod_adj(D::Gradient_2D{T}, v::AbstractArray{T,3}) where {T<:Real}
-    nx,ny,_ = size(v)
-    cdims = DenseConvDims((nx+1,ny+1,1,1), (2,2,1,2))
-    return reshape(∇conv_data(reshape(v, nx,ny,2,1), D.stencil, cdims), nx+1,ny+1)
+    cdims = DenseConvDims((D.n[1],D.n[2],1,1), (2,2,1,2))
+    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,2,1), D.stencil, cdims), D.n[1],D.n[2])
 end
 
-function gradient_2D(; T::DataType=Float32, h::Tuple{S,S}=(1f0,1f0)) where {S<:Real}
+function gradient_2D(n::NTuple{2,Int64}; T::DataType=Float32, h::Tuple{S,S}=(1f0,1f0)) where {S<:Real}
 
     # Stencil
     reT = real(T)
-    D = cat(reshape([reT(0) reT(1)/reT(h[1]); reT(0) reT(-1)/reT(h[1])], 2, 2, 1, 1), reshape([reT(0) reT(0); reT(1)/reT(h[2]) reT(-1)/reT(h[2])], 2, 2, 1, 1); dims=4)
-    ∇ = Gradient_2D{reT}(D)
+    D = zeros(reT, 2,2,1,2)
+    D[:,2,1,1] .= [reT(1)/reT(h[1]); reT(-1)/reT(h[1])]
+    D[2,:,1,2] .= [reT(1)/reT(h[2]); reT(-1)/reT(h[2])]
+    ∇ = Gradient_2D{reT}(n, D)
 
     T <: Real ? (return ∇) : (return complex(∇))
 
 end
 
-Flux.gpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(gpu(D.stencil))
-Flux.cpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(cpu(D.stencil))
+Flux.gpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(D.n, gpu(D.stencil))
+Flux.cpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(D.n, cpu(D.stencil))
 
 
 # Gradient (2D, complex)
@@ -63,22 +62,19 @@ Flux.cpu(D::ComplexGradient_2D{T}) where {T<:Real} = ComplexGradient_2D{T}(cpu(D
 # Gradient (3D)
 
 struct Gradient_3D{T}<:AbstractGradient_3D{T}
+    n::NTuple{3,Int64}
     stencil::AbstractArray{T,5}
 end
 
-AbstractLinearOperators.domain_size(D::Gradient_3D) = "nx×nyxnz"
-AbstractLinearOperators.range_size(D::Gradient_3D) = "(nx-1)×(ny-1)×(nz-1)×2"
-function AbstractLinearOperators.matvecprod(D::Gradient_3D{T}, u::AbstractArray{T,3}) where {T<:Real}
-    nx,ny,nz = size(u)
-    return reshape(conv(reshape(u, nx,ny,nz,1,1), D.stencil), nx-1,ny-1,nz-1,3)
-end
+AbstractLinearOperators.domain_size(D::Gradient_3D) = D.n
+AbstractLinearOperators.range_size(D::Gradient_3D) = (D.n[1]-1, D.n[2]-1, D.n[3]-1, 3)
+AbstractLinearOperators.matvecprod(D::Gradient_3D{T}, u::AbstractArray{T,3}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],D.n[3],1,1), D.stencil), D.n[1]-1,D.n[2]-1,D.n[3]-1,3)
 function AbstractLinearOperators.matvecprod_adj(D::Gradient_3D{T}, v::AbstractArray{T,4}) where {T<:Real}
-    nx,ny,nz,_ = size(v)
-    cdims = DenseConvDims((nx+1,ny+1,nz+1,1,1), (2,2,2,1,3))
-    return reshape(∇conv_data(reshape(v, nx,ny,nz,3,1), D.stencil, cdims), nx+1,ny+1,nz+1)
+    cdims = DenseConvDims((D.n[1],D.n[2],D.n[3],1,1), (2,2,2,1,3))
+    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,D.n[3]-1,3,1), D.stencil, cdims), D.n[1],D.n[2],D.n[3])
 end
 
-function gradient_3D(; T::DataType=Float32, h::NTuple{3,S}=(1f0,1f0,1f0)) where {S<:Real}
+function gradient_3D(n::NTuple{3,Int64}; T::DataType=Float32, h::NTuple{3,S}=(1f0,1f0,1f0)) where {S<:Real}
 
     # Stencil
     reT = real(T)
@@ -86,14 +82,14 @@ function gradient_3D(; T::DataType=Float32, h::NTuple{3,S}=(1f0,1f0,1f0)) where 
     D[:,2,2,1,1] .= [reT(1)/reT(h[1]); reT(-1)/reT(h[1])]
     D[2,:,2,1,2] .= [reT(1)/reT(h[2]); reT(-1)/reT(h[2])]
     D[2,2,:,1,3] .= [reT(1)/reT(h[3]); reT(-1)/reT(h[3])]
-    ∇ = Gradient_3D{reT}(D)
+    ∇ = Gradient_3D{reT}(n, D)
 
     T <: Real ? (return ∇) : (return complex(∇))
 
 end
 
-Flux.gpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(gpu(D.stencil))
-Flux.cpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(cpu(D.stencil))
+Flux.gpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(D.n, gpu(D.stencil))
+Flux.cpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(D.n, cpu(D.stencil))
 
 
 # Gradient (3D, complex)
@@ -116,34 +112,31 @@ Flux.cpu(D::ComplexGradient_3D{T}) where {T<:Real} = ComplexGradient_3D{T}(cpu(D
 # Gradient (2D-batch)
 
 struct GradientBatch_2D{T}<:AbstractGradientBatch_2D{T}
+    n::NTuple{4, Int64}
     stencil::AbstractArray{T,4}
 end
 
-AbstractLinearOperators.domain_size(D::GradientBatch_2D) = "nx×ny×nc×nb"
-AbstractLinearOperators.range_size(D::GradientBatch_2D) = "(nx-1)×(ny-1)×2nc×nb"
-function AbstractLinearOperators.matvecprod(D::GradientBatch_2D{T}, u::AbstractArray{T,4}) where {T<:Real}
-    nx,ny,nc,nb = size(u)
-    return reshape(conv(reshape(u, nx,ny,1,nc*nb), D.stencil), nx-1,ny-1,2*nc,nb)
-end
+AbstractLinearOperators.domain_size(D::GradientBatch_2D) = D.n
+AbstractLinearOperators.range_size(D::GradientBatch_2D) = (D.n[1]-1, D.n[2]-1, 2*D.n[3], D.n[4])
+AbstractLinearOperators.matvecprod(D::GradientBatch_2D{T}, u::AbstractArray{T,4}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],1,D.n[3]*D.n[4]), D.stencil), D.n[1]-1,D.n[2]-1,2*D.n[3],D.n[4])
 function AbstractLinearOperators.matvecprod_adj(D::GradientBatch_2D{T}, v::AbstractArray{T,4}) where {T<:Real}
-    nx,ny,nc,nb = size(v)
-    cdims = DenseConvDims((nx+1,ny+1,1,div(nc,2)*nb), (2,2,1,2))
-    return reshape(∇conv_data(reshape(v, nx,ny,2,div(nc,2)*nb), D.stencil, cdims), nx+1,ny+1,div(nc,2),nb)
+    cdims = DenseConvDims((D.n[1],D.n[2],1,div(D.n[3],2)*D.n[4]), (2,2,1,2))
+    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,2,div(D.n[3],2)*D.n[4]), D.stencil, cdims), D.n[1],D.n[2],div(D.n[3],2),D.n[4])
 end
 
-function gradient_batch_2D(; T::DataType=Float32, h::NTuple{2,S}=(1f0,1f0)) where {S<:Real}
+function gradient_batch_2D(n::NTuple{4,Int64}; T::DataType=Float32, h::NTuple{2,S}=(1f0,1f0)) where {S<:Real}
 
     # Stencil
     reT = real(T)
     D = cat(reshape([reT(0) reT(1)/reT(h[1]); reT(0) reT(-1)/reT(h[1])], 2, 2, 1, 1), reshape([reT(0) reT(0); reT(1)/reT(h[2]) reT(-1)/reT(h[2])], 2, 2, 1, 1); dims=4)
-    ∇ = GradientBatch_2D{reT}(D)
+    ∇ = GradientBatch_2D{reT}(n, D)
 
     T <: Real ? (return ∇) : (return complex(∇)) 
 
 end
 
-Flux.gpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(gpu(D.stencil))
-Flux.cpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(cpu(D.stencil))
+Flux.gpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(D.n, gpu(D.stencil))
+Flux.cpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(D.n, cpu(D.stencil))
 
 
 # Gradient (2D-batch, complex)

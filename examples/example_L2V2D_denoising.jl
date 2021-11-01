@@ -1,4 +1,4 @@
-using LinearAlgebra, FastSolversForWeightedTV, Flux, TestImages, CUDA, Statistics, PyPlot
+using LinearAlgebra, FastSolversForWeightedTV, Flux, TestImages, CUDA, PyPlot
 CUDA.allowscalar(false)
 using Random; Random.seed!(123)
 
@@ -7,19 +7,13 @@ n = (256, 256)
 y_orig = Float32.(TestImages.shepp_logan(n...)) |> gpu
 y_orig = y_orig/norm(y_orig, Inf)
 
-# Prior contrast
-η = 0.1f0*gradient_mean(y_orig)
-P = structural_weight(y_orig, η)
-
 # TV norm
-g = L2V_norm_2D(; weight=P) |> gpu
+g = L2V_norm_2D(n) |> gpu
 ε_orig = g(y_orig)
+opt = opt_fista(; steplength=1f0/8f0, niter=2000, tol_x=nothing, nesterov=true)
 
 # Artificial noise
 y = y_orig+gpu(0.1f0*randn(Float32, n))
-
-# Optimization options
-opt = opt_fista(; steplength=1f0/8f0, niter=2000, tol_x=nothing, nesterov=true)
 
 # Proxy
 λ = 0.5f0*norm(y)^2/g(y)
@@ -28,7 +22,7 @@ err_proxy = norm(xproxy-y_orig)/norm(y_orig)
 println("Proxy rel err: ", err_proxy)
 
 # Projection test
-ε = ε_orig
+ε = 0.5f0*ε_orig
 xproj = project(y, ε, g, opt)
 err_proj = norm(xproj-y_orig)/norm(y_orig)
 println("Proj rel err: ", err_proj)
@@ -44,9 +38,9 @@ title("Noisy phantom")
 axis("off")
 subplot(1,2,2)
 imshow(cpu(xproxy); cmap="gray", vmin=vmin, vmax=vmax)
-title(string("wL2V proxy, ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proxy)))
+title(string("L2V proxy (2D), ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proxy)))
 axis("off")
-savefig("./plots/wL2Vprox.png", dpi=300, transparent=false, bbox_inches="tight")
+savefig("./plots/L2V2Dprox.png", dpi=300, transparent=false, bbox_inches="tight")
 
 # Plot proxy
 figure()
@@ -56,6 +50,6 @@ title("Noisy phantom")
 axis("off")
 subplot(1,2,2)
 imshow(cpu(xproj); cmap="gray", vmin=vmin, vmax=vmax)
-title(string("wL2V proj., ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", err_proj))
+title(string("L2V proj. (2D), ", L"$\mathrm{err}_{\mathrm{rel}}$ = ", string(err_proj)))
 axis("off")
-savefig("./plots/wL2Vproj.png", dpi=300, transparent=false, bbox_inches="tight")
+savefig("./plots/L2V2Dproj.png", dpi=300, transparent=false, bbox_inches="tight")

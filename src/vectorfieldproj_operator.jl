@@ -1,4 +1,4 @@
-export structural_weight, structural_mean
+export structural_weight
 
 
 # Projection on vector field (2-D)
@@ -14,13 +14,8 @@ AbstractLinearOperators.matvecprod_adj(P::ProjVectorField_2D{T}, u::AbstractArra
 
 structural_weight(P::ProjVectorField_2D) = P.∇ŵ
 
-function structural_mean(u::AbstractArray{T,2}; ∇::Union{Nothing,AbstractGradient_2D{T}}=nothing, h::NTuple{2,S}=(1f0,1f0)) where {T<:Number,S<:Real}
-    ∇ === nothing && (∇ = gradient_2D(; T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
-    return sum(ptnorm2(∇*u))/length(u)
-end
-
 function structural_weight(u::AbstractArray{T,2}; ∇::Union{Nothing,AbstractGradient_2D{T}}=nothing, h::NTuple{2,S}=(1f0,1f0), η::U=0f0) where {T<:Number, S<:Real, U<:Real}
-    ∇ === nothing && (∇ = gradient_2D(; T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
+    ∇ === nothing && (∇ = gradient_2D(size(u); T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
     ∇u = ∇*u
     return ProjVectorField_2D{T}(∇u./ptnorm2(∇u; η=T(η)))
 end
@@ -42,13 +37,8 @@ AbstractLinearOperators.matvecprod_adj(P::ProjVectorField_3D{T}, u::AbstractArra
 
 structural_weight(P::ProjVectorField_3D) = P.∇ŵ
 
-function structural_mean(u::AbstractArray{T,3}; ∇::Union{Nothing,AbstractGradient_3D{T}}=nothing, h::NTuple{3,S}=(1f0,1f0,1f0)) where {T<:Number,S<:Real}
-    ∇ === nothing && (∇ = gradient_3D(; T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
-    return sum(ptnorm2(∇*u))/length(u)
-end
-
 function structural_weight(u::AbstractArray{T,3}; ∇::Union{Nothing,AbstractGradient_3D{T}}=nothing, h::NTuple{3,S}=(1f0,1f0,1f0), η::U=0f0) where {T<:Number, S<:Real, U<:Real}
-    ∇ === nothing && (∇ = gradient_3D(; T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
+    ∇ === nothing && (∇ = gradient_3D(size(u); T=T, h=h); u isa CuArray && (∇ = gpu(∇)))
     ∇u = ∇*u
     return ProjVectorField_3D{T}(∇u./ptnorm2(∇u; η=T(η)))
 end

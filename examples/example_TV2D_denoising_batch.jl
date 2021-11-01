@@ -13,7 +13,7 @@ y_orig = repeat(y_orig; outer=(1,1,nc,nb)) |> gpu
 y = y_orig+gpu(0.1f0*randn(Float32, size(y_orig)))
 
 # TV norm
-g = TV_norm_batch_2D() |> gpu
+g = TV_norm_batch_2D((n...,nc,nb)) |> gpu
 
 # Optimization options
 opt = opt_fista(; steplength=1f0/8f0, niter=100, tol_x=nothing, nesterov=true)

@@ -79,7 +79,6 @@ proxy!(y::AbstractArray{T,N}, ::T, δ::IndicatorFunction{T,N}, x::AbstractArray{
 proxy!(y::AbstractArray{T,N}, ::T, δ::IndicatorFunction{T,N}, x::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = project!(y, δ.C, x, opt)
 
 
-
 # Proximable + linear operator
 
 struct WeightedProximableFun{T,N1,N2}<:ProximableFunction{T,N1}
@@ -92,12 +91,10 @@ Base.:∘(g::ProximableFunction{T,N2}, A::AbstractLinearOperator{DT,RT}) where {
 function proxy!(y::AbstractArray{T,N1}, λ::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
 
     # Objective function (dual problem)
-    gT = conjugate(g.g)/λ
-    f = leastsquares_misfit(adjoint(g.A), y/λ)+gT
+    f = leastsquares_misfit(adjoint(g.A), y/λ)+conjugate(g.g)/λ
 
     # Minimization (dual variable)
-    p0 = proxy(opt.steplength/λ*g.A*y, T(1)/λ, gT)
-    # p0 = T(0)*proxy(opt.steplength/λ*g.A*y, T(1)/λ, gT)
+    p0 = similar(y, range_size(g.A)); p0 .= T(0)
     p = minimize(f, p0, opt)
 
     # Dual to primal solution
@@ -108,11 +105,10 @@ end
 function project!(y::AbstractArray{T,N1}, ε::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
 
     # Objective function (dual problem)
-    gT = conjugate(indicator(g.g ≤ ε))
-    f = leastsquares_misfit(adjoint(g.A), y)+gT
+    f = leastsquares_misfit(adjoint(g.A), y)+conjugate(indicator(g.g ≤ ε))
 
     # Minimization (dual variable)
-    p0 = proxy(opt.steplength*g.A*y, T(1), gT)
+    p0 = similar(y, range_size(g.A)); p0 .= T(0)
     p = minimize(f, p0, opt)
 
     # Dual to primal solution

@@ -15,7 +15,7 @@ g = TV_norm_2D(n) |> gpu
 y = y_orig+gpu(0.1f0*randn(Float32, n))
 
 # Optimization options
-opt = opt_fista(; steplength=1f0/8f0, niter=3000, tol_x=nothing, nesterov=true)
+opt = opt_fista(; steplength=1f0/8f0, niter=1000, tol_x=nothing, nesterov=true)
 
 # Proxy
 λ = 0.5f0*norm(y)^2/g(y)

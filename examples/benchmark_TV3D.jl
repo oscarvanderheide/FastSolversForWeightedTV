@@ -6,7 +6,7 @@ flag_gpu = true
 # flag_gpu = false
 
 # Optimization options
-opt = opt_fista(; steplength=1f0/12f0, niter=5, tol_x=nothing, nesterov=true)
+opt = opt_fista(; steplength=1f0/12f0, niter=10, tol_x=nothing, nesterov=true)
 
 # TV norm
 n = (256,256,256)

@@ -85,9 +85,27 @@ end
 
 # Pareto-search routines
 
-pareto_search_proj21(ptn::AbstractArray{T,N}, ε::T) where {T,N} = T(solve(ZeroProblem(λ -> obj_pareto_search_proj21(λ, ptn, ε), (T(0), maximum(ptn))), Roots.Brent()))
+# pareto_search_proj21(ptn::AbstractArray{T,N}, ε::T) where {T,N} = T(solve(ZeroProblem(λ -> obj_pareto_search_proj21(λ, ptn, ε), (T(0), maximum(ptn))), Roots.Brent()))
+pareto_search_proj21(ptn::AbstractArray{T,N}, ε::T) where {T,N} = find_root(ptn, ε; xrtol=T(1e-3))
 
-obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,N}, ε::T) where {T,N} = sum(Flux.relu.(ptn.-λ))-ε
+# obj_pareto_search_proj21(λ::T, ptn::AbstractArray{T,N}, ε::T) where {T,N} = sum(Flux.relu.(ptn.-λ))-ε
+
+function find_root(ptn::AbstractArray{T,N}, ε::T; maxiter::Int64=length(ptn), atol::T=eps(T), xrtol::T=eps(T)) where {T,N}
+    function f(λ::T; grad::Bool=false) where T
+        x = ptn.-λ
+        fval = sum(Flux.relu.(x))-ε
+        ~grad ? (return fval) : (return fval, -T(sum(∇relu(x))))
+    end
+    a = T(0)
+    for i = 1:maxiter
+        fa, dfa = f(a; grad=true)
+        a1 = a-fa/dfa
+        ((abs(fa) <= atol) || (abs(a1-a)/abs(a) <= xrtol)) && break
+        a = a1
+    end
+    return a
+end
+∇relu(x::AbstractArray{T,N}) where {T,N} = (x .>= T(0))
 
 
 # L21 norm (3-D)

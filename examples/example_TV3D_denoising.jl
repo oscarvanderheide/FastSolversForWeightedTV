@@ -20,13 +20,13 @@ opt = opt_fista(; steplength=1f0/12f0, niter=1000, tol_x=nothing, nesterov=true)
 
 # Proxy
 λ = 0.5f0*norm(y)^2/g(y)
-xproxy = proxy(y, λ, g, opt)
+@time xproxy = proxy(y, λ, g, opt)
 err_proxy = norm(xproxy-y_orig)/norm(y_orig)
 println("Proxy rel err: ", err_proxy)
 
 # Projection test
 ε = ε_orig
-xproj = project(y, ε, g, opt)
+@time xproj = project(y, ε, g, opt)
 err_proj = norm(xproj-y_orig)/norm(y_orig)
 println("Proj rel err: ", err_proj)
 

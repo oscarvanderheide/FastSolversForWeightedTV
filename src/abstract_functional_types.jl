@@ -40,10 +40,10 @@ It approximates the solution of the optimization problem: min_{g(x)<=ε} 0.5*nor
 """
 abstract type ProximableFunction{T,N} end
 
-proxy(y::AbstractArray{T,N}, λ::T, g::ProximableFunction{T,N}) where {T,N} = proxy!(y, λ, g, similar(y))
-project(y::AbstractArray{T,N}, ε::T, g::ProximableFunction{T,N}) where {T,N} = project!(y, ε, g, similar(y))
-proxy(y::AbstractArray{T,N}, λ::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = proxy!(y, λ, g, similar(y), opt::OptimOptions)
-project(y::AbstractArray{T,N}, ε::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = project!(y, ε, g, similar(y), opt::OptimOptions)
+proxy(y::AbstractArray{CT,N}, λ::T, g::ProximableFunction{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = proxy!(y, λ, g, similar(y))
+project(y::AbstractArray{CT,N}, ε::T, g::ProximableFunction{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = project!(y, ε, g, similar(y))
+proxy(y::AbstractArray{CT,N}, λ::T, g::ProximableFunction{CT,N}, opt::OptimOptions) where {T<:Real,N,CT<:RealOrComplex{T}} = proxy!(y, λ, g, similar(y), opt::OptimOptions)
+project(y::AbstractArray{CT,N}, ε::T, g::ProximableFunction{CT,N}, opt::OptimOptions) where {T<:Real,N,CT<:RealOrComplex{T}} = project!(y, ε, g, similar(y), opt::OptimOptions)
 
 
 """Projectional sets

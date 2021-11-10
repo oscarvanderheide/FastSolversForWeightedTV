@@ -1,156 +1,68 @@
 #: Gradient operator via convolution
 
-export gradient_2D, gradient_3D, gradient_batch_2D
+export gradient_operator, gradient_operator_batch
 
 
-# Abstract gradient types
+# Generic convolutional operator
 
-abstract type AbstractGradient_2D{T}<:AbstractLinearOperator{AbstractArray{T,2},AbstractArray{T,3}} end
-abstract type AbstractGradientBatch_2D{T}<:AbstractLinearOperator{AbstractArray{T,4},AbstractArray{T,4}} end
-abstract type AbstractGradient_3D{T}<:AbstractLinearOperator{AbstractArray{T,3},AbstractArray{T,4}} end
-
-
-# Gradient (2D)
-
-struct Gradient_2D{T}<:AbstractGradient_2D{T}
-    n::NTuple{2,Int64}
-    stencil::AbstractArray{T,4}
+struct RealConvolutionalOperator{T,N}<:AbstractLinearOperator{T,N,N}
+    cdims::DenseConvDims
+    stencil::AbstractArray{<:Real,N}
 end
 
-AbstractLinearOperators.domain_size(D::Gradient_2D) = D.n
-AbstractLinearOperators.range_size(D::Gradient_2D) = (D.n[1]-1, D.n[2]-1, 2)
-AbstractLinearOperators.matvecprod(D::Gradient_2D{T}, u::AbstractArray{T,2}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],1,1), D.stencil), D.n[1]-1,D.n[2]-1,2)
-function AbstractLinearOperators.matvecprod_adj(D::Gradient_2D{T}, v::AbstractArray{T,3}) where {T<:Real}
-    cdims = DenseConvDims((D.n[1],D.n[2],1,1), (2,2,1,2))
-    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,2,1), D.stencil, cdims), D.n[1],D.n[2])
-end
+AbstractLinearOperators.domain_size(A::RealConvolutionalOperator) = NNlib.input_size(A.cdims)
+AbstractLinearOperators.range_size(A::RealConvolutionalOperator) = NNlib.output_size(A.cdims)
+AbstractLinearOperators.matvecprod(A::RealConvolutionalOperator{CT,N}, u::AbstractArray{T,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = conv(u, A.stencil)
+AbstractLinearOperators.matvecprod(A::RealConvolutionalOperator{T,N}, u::AbstractArray{T,N}) where {T<:Complex,N} = matvecprod(A, real(u))+1im*matvecprod(A, imag(u))
+AbstractLinearOperators.matvecprod_adj(A::RealConvolutionalOperator{CT,N}, v::AbstractArray{T,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = ∇conv_data(v, A.stencil, A.cdims)
+AbstractLinearOperators.matvecprod_adj(A::RealConvolutionalOperator{T,N}, v::AbstractArray{T,N}) where {T<:Complex,N} = matvecprod_adj(A, real(v))+1im*matvecprod_adj(A, imag(v))
 
-function gradient_2D(n::NTuple{2,Int64}; T::DataType=Float32, h::Tuple{S,S}=(1f0,1f0)) where {S<:Real}
-
-    # Stencil
-    reT = real(T)
-    D = zeros(reT, 2,2,1,2)
-    D[:,2,1,1] .= [reT(1)/reT(h[1]); reT(-1)/reT(h[1])]
-    D[2,:,1,2] .= [reT(1)/reT(h[2]); reT(-1)/reT(h[2])]
-    ∇ = Gradient_2D{reT}(n, D)
-
-    T <: Real ? (return ∇) : (return complex(∇))
-
-end
-
-Flux.gpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(D.n, gpu(D.stencil))
-Flux.cpu(D::Gradient_2D{T}) where {T<:Real} = Gradient_2D{T}(D.n, cpu(D.stencil))
+Flux.gpu(A::RealConvolutionalOperator{T,N}) where {T,N} = RealConvolutionalOperator{T,N}(A.cdims, gpu(A.stencil))
+Flux.cpu(A::RealConvolutionalOperator{T,N}) where {T,N} = RealConvolutionalOperator{T,N}(A.cdims, cpu(A.stencil))
 
 
-# Gradient (2D, complex)
+# Gradient operator
 
-Base.complex(D::Gradient_2D{T}) where {T<:Real} = ComplexGradient_2D{T}(D)
+function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,S}; T::DataType=Float32) where {dim,S<:Real}
 
-struct ComplexGradient_2D{T}<:AbstractGradient_2D{Complex{T}}
-    ∇::Gradient_2D{T}
-end
+    # Gradient operator (w/out shaping)
+    stencil = gradient_stencil(real(T).(h))
+    cdims = DenseConvDims((n...,1,1), size(stencil))
+    ∇_ = RealConvolutionalOperator{T,dim+2}(cdims, stencil)
 
-AbstractLinearOperators.domain_size(D::ComplexGradient_2D) = domain_size(D.∇)
-AbstractLinearOperators.range_size(D::ComplexGradient_2D) = range_size(D.∇)
-AbstractLinearOperators.matvecprod(D::ComplexGradient_2D{T}, u::AbstractArray{Complex{T},2}) where {T<:Real} = D.∇*real.(u)+1im*D.∇*imag.(u)
-AbstractLinearOperators.matvecprod_adj(D::ComplexGradient_2D{T}, v::AbstractArray{Complex{T},3}) where {T<:Real} = adjoint(D.∇)*real.(v)+1im*adjoint(D.∇)*imag.(v)
+    # Reshaping operator
+    Rin  = reshape_operator(T, n, (n...,1,1))
+    Rout = reshape_operator(T, ((n.-1)...,dim,1), ((n.-1)...,dim))
 
-Flux.gpu(D::ComplexGradient_2D{T}) where {T<:Real} = ComplexGradient_2D{T}(gpu(D.∇))
-Flux.cpu(D::ComplexGradient_2D{T}) where {T<:Real} = ComplexGradient_2D{T}(cpu(D.∇))
-
-
-# Gradient (3D)
-
-struct Gradient_3D{T}<:AbstractGradient_3D{T}
-    n::NTuple{3,Int64}
-    stencil::AbstractArray{T,5}
-end
-
-AbstractLinearOperators.domain_size(D::Gradient_3D) = D.n
-AbstractLinearOperators.range_size(D::Gradient_3D) = (D.n[1]-1, D.n[2]-1, D.n[3]-1, 3)
-AbstractLinearOperators.matvecprod(D::Gradient_3D{T}, u::AbstractArray{T,3}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],D.n[3],1,1), D.stencil), D.n[1]-1,D.n[2]-1,D.n[3]-1,3)
-function AbstractLinearOperators.matvecprod_adj(D::Gradient_3D{T}, v::AbstractArray{T,4}) where {T<:Real}
-    cdims = DenseConvDims((D.n[1],D.n[2],D.n[3],1,1), (2,2,2,1,3))
-    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,D.n[3]-1,3,1), D.stencil, cdims), D.n[1],D.n[2],D.n[3])
-end
-
-function gradient_3D(n::NTuple{3,Int64}; T::DataType=Float32, h::NTuple{3,S}=(1f0,1f0,1f0)) where {S<:Real}
-
-    # Stencil
-    reT = real(T)
-    D = zeros(reT, 2,2,2,1,3)
-    D[:,2,2,1,1] .= [reT(1)/reT(h[1]); reT(-1)/reT(h[1])]
-    D[2,:,2,1,2] .= [reT(1)/reT(h[2]); reT(-1)/reT(h[2])]
-    D[2,2,:,1,3] .= [reT(1)/reT(h[3]); reT(-1)/reT(h[3])]
-    ∇ = Gradient_3D{reT}(n, D)
-
-    T <: Real ? (return ∇) : (return complex(∇))
+    return Rout*∇_*Rin
 
 end
 
-Flux.gpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(D.n, gpu(D.stencil))
-Flux.cpu(D::Gradient_3D{T}) where {T<:Real} = Gradient_3D{T}(D.n, cpu(D.stencil))
+function gradient_operator_batch(n::NTuple{dim,Int64}, nc::Int64, nb::Int64, h::NTuple{dim,S}; T::DataType=Float32) where {dim,S<:Real}
 
+    # Gradient operator (w/out shaping)
+    stencil = gradient_stencil(real(T).(h))
+    cdims = DenseConvDims((n...,1,nc*nb), size(stencil))
+    ∇_ = RealConvolutionalOperator{T,dim+2}(cdims, stencil)
 
-# Gradient (3D, complex)
+    # Reshaping operator
+    Rin  = reshape_operator(T, (n...,nc,nb), (n...,1,nc*nb))
+    Rout = reshape_operator(T, ((n.-1)...,dim,nc*nb), ((n.-1)...,dim*nc,nb))
 
-Base.complex(D::Gradient_3D{T}) where {T<:Real} = ComplexGradient_3D{T}(D)
-
-struct ComplexGradient_3D{T}<:AbstractGradient_3D{Complex{T}}
-    ∇::Gradient_3D{T}
-end
-
-AbstractLinearOperators.domain_size(D::ComplexGradient_3D) = domain_size(D.∇)
-AbstractLinearOperators.range_size(D::ComplexGradient_3D) = range_size(D.∇)
-AbstractLinearOperators.matvecprod(D::ComplexGradient_3D{T}, u::AbstractArray{Complex{T},3}) where {T<:Real} = D.∇*real.(u)+1im*D.∇*imag.(u)
-AbstractLinearOperators.matvecprod_adj(D::ComplexGradient_3D{T}, v::AbstractArray{Complex{T},4}) where {T<:Real} = adjoint(D.∇)*real.(v)+1im*adjoint(D.∇)*imag.(v)
-
-Flux.gpu(D::ComplexGradient_3D{T}) where {T<:Real} = ComplexGradient_3D{T}(gpu(D.∇))
-Flux.cpu(D::ComplexGradient_3D{T}) where {T<:Real} = ComplexGradient_3D{T}(cpu(D.∇))
-
-
-# Gradient (2D-batch)
-
-struct GradientBatch_2D{T}<:AbstractGradientBatch_2D{T}
-    n::NTuple{4, Int64}
-    stencil::AbstractArray{T,4}
-end
-
-AbstractLinearOperators.domain_size(D::GradientBatch_2D) = D.n
-AbstractLinearOperators.range_size(D::GradientBatch_2D) = (D.n[1]-1, D.n[2]-1, 2*D.n[3], D.n[4])
-AbstractLinearOperators.matvecprod(D::GradientBatch_2D{T}, u::AbstractArray{T,4}) where {T<:Real} = reshape(conv(reshape(u, D.n[1],D.n[2],1,D.n[3]*D.n[4]), D.stencil), D.n[1]-1,D.n[2]-1,2*D.n[3],D.n[4])
-function AbstractLinearOperators.matvecprod_adj(D::GradientBatch_2D{T}, v::AbstractArray{T,4}) where {T<:Real}
-    cdims = DenseConvDims((D.n[1],D.n[2],1,div(D.n[3],2)*D.n[4]), (2,2,1,2))
-    return reshape(∇conv_data(reshape(v, D.n[1]-1,D.n[2]-1,2,div(D.n[3],2)*D.n[4]), D.stencil, cdims), D.n[1],D.n[2],div(D.n[3],2),D.n[4])
-end
-
-function gradient_batch_2D(n::NTuple{4,Int64}; T::DataType=Float32, h::NTuple{2,S}=(1f0,1f0)) where {S<:Real}
-
-    # Stencil
-    reT = real(T)
-    D = cat(reshape([reT(0) reT(1)/reT(h[1]); reT(0) reT(-1)/reT(h[1])], 2, 2, 1, 1), reshape([reT(0) reT(0); reT(1)/reT(h[2]) reT(-1)/reT(h[2])], 2, 2, 1, 1); dims=4)
-    ∇ = GradientBatch_2D{reT}(n, D)
-
-    T <: Real ? (return ∇) : (return complex(∇)) 
+    return Rout*∇_*Rin
 
 end
 
-Flux.gpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(D.n, gpu(D.stencil))
-Flux.cpu(D::GradientBatch_2D{T}) where {T<:Real} = GradientBatch_2D{T}(D.n, cpu(D.stencil))
 
+# Gradient stencil utils
 
-# Gradient (2D-batch, complex)
-
-Base.complex(D::GradientBatch_2D{T}) where {T<:Real} = ComplexGradientBatch_2D{T}(D)
-
-struct ComplexGradientBatch_2D{T}<:AbstractGradientBatch_2D{Complex{T}}
-    ∇::GradientBatch_2D{T}
+function gradient_stencil(h::NTuple{dim,T}) where {dim,T}
+    k = tuple(2*ones(Int64, dim)...)
+    stencil = zeros(T,k...,1,dim)
+    for i = 1:dim
+        idx = Vector{UnitRange{Int64}}(undef,dim); fill!(idx, 2:2)
+        idx[i] = 1:2
+        view(stencil, tuple(idx...)...,1,i)[1:2] .= [T(1)/h[i]; T(-1)/h[i]]
+    end
+    return stencil
 end
-
-AbstractLinearOperators.domain_size(D::ComplexGradientBatch_2D) = domain_size(D.∇)
-AbstractLinearOperators.range_size(D::ComplexGradientBatch_2D) = range_size(D.∇)
-AbstractLinearOperators.matvecprod(D::ComplexGradientBatch_2D{T}, u::AbstractArray{Complex{T},4}) where {T<:Real} = D.∇*real.(u)+1im*D.∇*imag.(u)
-AbstractLinearOperators.matvecprod_adj(D::ComplexGradientBatch_2D{T}, v::AbstractArray{Complex{T},4}) where {T<:Real} = adjoint(D.∇)*real.(v)+1im*adjoint(D.∇)*imag.(v)
-
-Flux.gpu(D::ComplexGradientBatch_2D{T}) where {T<:Real} = ComplexGradientBatch_2D{T}(gpu(D.∇))
-Flux.cpu(D::ComplexGradientBatch_2D{T}) where {T<:Real} = ComplexGradientBatch_2D{T}(cpu(D.∇))

@@ -12,7 +12,7 @@ function bw(y)
     x[1:2:end,1:2:end] .= y
     return x
 end
-A = linear_operator(Array{T,2}, Array{T,2}, n, (512, 1024), fw, bw)
+A = linear_operator(T, n, (512, 1024), fw, bw)
 
 # Misfit
 y = randn(T, 512, 1024)

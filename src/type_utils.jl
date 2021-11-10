@@ -7,20 +7,20 @@ export no_constraints, indicator
 # Scaled version of proximable/projectionable functions
 
 struct ScaledProximableFun{T,N}<:ProximableFunction{T,N}
-    c::T
+    c::Real
     g::ProximableFunction{T,N}
 end
 
-proxy!(y::AbstractArray{T,N}, λ::T, g::ScaledProximableFun{T,N}, x::AbstractArray{T,N}) where {T,N} = proxy!(y, λ*g.c, g.g, x)
-project!(y::AbstractArray{T,N}, ε::T, g::ScaledProximableFun{T,N}, x::AbstractArray{T,N}) where {T,N} = project!(y, g.c/ε, g.g, x)
+proxy!(y::AbstractArray{CT,N}, λ::T, g::ScaledProximableFun{CT,N}, x::AbstractArray{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = proxy!(y, λ*g.c, g.g, x)
+project!(y::AbstractArray{CT,N}, ε::T, g::ScaledProximableFun{CT,N}, x::AbstractArray{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = project!(y, g.c/ε, g.g, x)
 
 
 # LinearAlgebra
 
-Base.:*(c::T, g::ProximableFunction{T,N}) where {T,N} = ScaledProximableFun{T,N}(c, g)
-Base.:*(c::T, g::ScaledProximableFun{T,N}) where {T,N} = ScaledProximableFun{T,N}(c*g.c, g.g)
-Base.:/(g::ProximableFunction{T,N}, c::T) where {T,N} = ScaledProximableFun{T,N}(T(1)/c, g)
-Base.:/(g::ScaledProximableFun{T,N}, c::T) where {T,N} = ScaledProximableFun{T,N}(g.c/c, g.g)
+Base.:*(c::T, g::ProximableFunction{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = ScaledProximableFun{CT,N}(c, g)
+Base.:*(c::T, g::ScaledProximableFun{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = ScaledProximableFun{CT,N}(c*g.c, g.g)
+Base.:/(g::ProximableFunction{CT,N}, c::T) where {T<:Real,N,CT<:RealOrComplex{T}} = ScaledProximableFun{CT,N}(T(1)/c, g)
+Base.:/(g::ScaledProximableFun{CT,N}, c::T) where {T<:Real,N,CT<:RealOrComplex{T}} = ScaledProximableFun{CT,N}(g.c/c, g.g)
 
 
 # Conjugation of proximable functions
@@ -29,7 +29,7 @@ struct ConjugateProxFun{T,N}<:ProximableFunction{T,N}
     g::ProximableFunction{T,N}
 end
 
-function proxy!(y::AbstractArray{T,N}, λ::T, g::ConjugateProxFun{T,N}, x::AbstractArray{T,N}) where {T,N}
+function proxy!(y::AbstractArray{CT,N}, λ::T, g::ConjugateProxFun{CT,N}, x::AbstractArray{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}}
     proxy!(y/λ, T(1)/λ, g.g, x)
     x .= y-λ*x
     return x
@@ -56,10 +56,10 @@ Constraint set C = {x:g(x)<=ε}
 """
 struct SubLevelSet{T,N}<:ProjectionableSet{T,N}
     g::ProximableFunction{T,N}
-    ε::T
+    ε::Real
 end
 
-Base.:≤(g::ProximableFunction{T,N}, ε::T) where {T,N} = SubLevelSet{T,N}(g, ε)
+Base.:≤(g::ProximableFunction{CT,N}, ε::T) where {T<:Real,N,CT<:RealOrComplex{T}} = SubLevelSet{CT,N}(g, ε)
 
 project!(x::AbstractArray{T,N}, C::SubLevelSet{T,N}, y::AbstractArray{T,N}) where {T,N} = project!(x, C.ε, C.g, y)
 project!(x::AbstractArray{T,N}, C::SubLevelSet{T,N}, y::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = project!(x, C.ε, C.g, y, opt)
@@ -75,20 +75,20 @@ end
 
 indicator(C::ProjectionableSet{T,N}) where {T,N} = IndicatorFunction{T,N}(C)
 
-proxy!(y::AbstractArray{T,N}, ::T, δ::IndicatorFunction{T,N}, x::AbstractArray{T,N}) where {T,N} = project!(y, δ.C, x)
-proxy!(y::AbstractArray{T,N}, ::T, δ::IndicatorFunction{T,N}, x::AbstractArray{T,N}, opt::OptimOptions) where {T,N} = project!(y, δ.C, x, opt)
+proxy!(y::AbstractArray{CT,N}, ::T, δ::IndicatorFunction{CT,N}, x::AbstractArray{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = project!(y, δ.C, x)
+proxy!(y::AbstractArray{CT,N}, ::T, δ::IndicatorFunction{CT,N}, x::AbstractArray{CT,N}, opt::OptimOptions) where {T<:Real,N,CT<:RealOrComplex{T}} = project!(y, δ.C, x, opt)
 
 
 # Proximable + linear operator
 
 struct WeightedProximableFun{T,N1,N2}<:ProximableFunction{T,N1}
     g::ProximableFunction{T,N2}
-    A::AbstractLinearOperator{<:AbstractArray{T,N1},<:AbstractArray{T,N2}}
+    A::AbstractLinearOperator{T,N1,N2}
 end
 
-Base.:∘(g::ProximableFunction{T,N2}, A::AbstractLinearOperator{DT,RT}) where {T,N1,N2,DT<:AbstractArray{T,N1},RT<:AbstractArray{T,N2}} = WeightedProximableFun{T,N1,N2}(g, A)
+Base.:∘(g::ProximableFunction{T,N2}, A::AbstractLinearOperator{T,N1,N2}) where {T,N1,N2} = WeightedProximableFun{T,N1,N2}(g, A)
 
-function proxy!(y::AbstractArray{T,N1}, λ::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
+function proxy!(y::AbstractArray{CT,N1}, λ::T, g::WeightedProximableFun{CT,N1,N2}, x::AbstractArray{CT,N1}, opt::OptimOptions) where {T<:Real,N1,N2,CT<:RealOrComplex{T}}
 
     # Objective function (dual problem)
     f = leastsquares_misfit(adjoint(g.A), y/λ)+conjugate(g.g)/λ
@@ -98,11 +98,11 @@ function proxy!(y::AbstractArray{T,N1}, λ::T, g::WeightedProximableFun{T,N1,N2}
     p = minimize(f, p0, opt)
 
     # Dual to primal solution
-    return x .= y-λ*adjoint(g.A)*p
+    return x .= y-λ*(adjoint(g.A)*p)
 
 end
 
-function project!(y::AbstractArray{T,N1}, ε::T, g::WeightedProximableFun{T,N1,N2}, x::AbstractArray{T,N1}, opt::OptimOptions) where {T,N1,N2}
+function project!(y::AbstractArray{CT,N1}, ε::T, g::WeightedProximableFun{CT,N1,N2}, x::AbstractArray{CT,N1}, opt::OptimOptions) where {T<:Real,N1,N2,CT<:RealOrComplex{T}}
 
     # Objective function (dual problem)
     f = leastsquares_misfit(adjoint(g.A), y)+conjugate(indicator(g.g ≤ ε))
@@ -124,15 +124,14 @@ Flux.cpu(g::WeightedProximableFun{T,N1,N2}) where {T,N1,N2} = WeightedProximable
 
 # Proximable function evaluation
 
-
 struct ProxyObjFun{T,N} <: DifferentiableFunction{T,N}
-    λ::T
+    λ::Real
     g::ProximableFunction{T,N}
     opt::Union{Nothing,OptimOptions}
 end
 
-proxy_objfun(λ::T, g::ProximableFunction{T,N}) where {T,N} = ProxyObjFun{T,N}(λ, g, nothing)
-proxy_objfun(λ::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = ProxyObjFun{T,N}(λ, g, opt)
+proxy_objfun(λ::T, g::ProximableFunction{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = ProxyObjFun{CT,N}(λ, g, nothing)
+proxy_objfun(λ::T, g::ProximableFunction{CT,N}, opt::OptimOptions) where {T<:Real,N,CT<:RealOrComplex{T}} = ProxyObjFun{CT,N}(λ, g, opt)
 
 function grad!(f::ProxyObjFun{T,N}, y::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}) where {T,N}
     f.opt === nothing ? (x = proxy(y, f.λ, f.g)) : (x = proxy(y, f.λ, f.g, f.opt))
@@ -142,13 +141,13 @@ end
 
 
 struct ProjObjFun{T,N} <: DifferentiableFunction{T,N}
-    ε::T
+    ε::Real
     g::ProximableFunction{T,N}
     opt::Union{Nothing,OptimOptions}
 end
 
-proj_objfun(ε::T, g::ProximableFunction{T,N}) where {T,N} = ProjObjFun{T,N}(ε, g, nothing)
-proj_objfun(ε::T, g::ProximableFunction{T,N}, opt::OptimOptions) where {T,N} = ProjObjFun{T,N}(ε, g, opt)
+proj_objfun(ε::T, g::ProximableFunction{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}} = ProjObjFun{CT,N}(ε, g, nothing)
+proj_objfun(ε::T, g::ProximableFunction{CT,N}, opt::OptimOptions) where {T<:Real,N,CT<:RealOrComplex{T}} = ProjObjFun{CT,N}(ε, g, opt)
 
 function grad!(f::ProjObjFun{T,N}, y::AbstractArray{T,N}, g::Union{Nothing,AbstractArray{T,N}}) where {T,N}
     f.opt === nothing ? (x = project(y, f.ε, f.g)) : (x = project(y, f.ε, f.g, f.opt))

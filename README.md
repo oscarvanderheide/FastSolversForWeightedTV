@@ -1,6 +1,6 @@
 # FastSolversForWeightedTV
 
-Set of utilities for computing proximal and projection operators with the TV regularization, and weighted version thereof, with GPU support.
+Set of utilities for computing proximal and projection operators with the TV regularization, and weighted version thereof. The methods are applicable to 2D and 3D problems and support GPU.
 
 To install:
 ```
@@ -8,6 +8,8 @@ To install:
 ```
 
 See examples in the folder /examples for applications of total variation regularization via proxy or projection.
+
+This package is highly indebted to [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) and related projects.
 
 ## References
 

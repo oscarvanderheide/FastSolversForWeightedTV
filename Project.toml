@@ -11,4 +11,4 @@ NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 
 [compat]
-julia = "1.6.2"
+julia = "1.7"

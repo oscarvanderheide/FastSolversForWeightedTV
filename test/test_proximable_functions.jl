@@ -1,4 +1,4 @@
-using LinearAlgebra, FastSolversForWeightedTV, CUDA, Flux, Test, BenchmarkTools
+using LinearAlgebra, FastSolversForWeightedTV, CUDA, Flux, Test
 CUDA.allowscalar(false)
 include("./test_utils.jl")
 

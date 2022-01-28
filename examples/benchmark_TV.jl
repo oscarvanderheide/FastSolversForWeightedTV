@@ -11,7 +11,7 @@ flag_gpu = true
 # flag_gpu = false
 dim == 2 && (steplength = 1f0/8f0)
 dim == 3 && (steplength = 1f0/12f0)
-opt = opt_fista(steplength; niter=5, tol_x=nothing, nesterov=true)
+opt = opt_fista(steplength; niter=10, tol_x=1f-5, Nesterov=true)
 
 # TV norm
 n = tuple(256*ones(Int64, dim)...)

@@ -1,4 +1,4 @@
-using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, TestImages, Test, Statistics
+using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test
 CUDA.allowscalar(false)
 
 # Geometry

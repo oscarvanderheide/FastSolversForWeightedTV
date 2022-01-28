@@ -27,7 +27,7 @@ g = gradient_norm(N..., n, h; weight=P) |> gpu
 ε_orig = g(y_orig)
 dim == 2 && (steplength = 1f0/8f0)
 dim == 3 && (steplength = 1f0/12f0)
-opt = opt_fista(steplength; niter=1000, tol_x=nothing, nesterov=true)
+opt = opt_fista(steplength; niter=1000, tol_x=nothing, Nesterov=true)
 
 # Artificial noise
 y = y_orig+gpu(0.1f0*randn(Float32, n))

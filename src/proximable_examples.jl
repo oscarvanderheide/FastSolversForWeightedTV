@@ -23,9 +23,9 @@ end
 
 function mixed_norm(D::Number, N1::Number, N2::Number; T::DataType=Float32, proj_opt::Union{Nothing,ProjOptions}=nothing)
     proj_opt === nothing && (proj_opt = proj_options())
+    (D == 1) && return MixedNorm{T,2,N1,N2}(proj_opt)
     (D == 2) && return MixedNorm{T,3,N1,N2}(proj_opt)
     (D == 3) && return MixedNorm{T,4,N1,N2}(proj_opt)
-    throw("Dimension not supported")
 end
 
 

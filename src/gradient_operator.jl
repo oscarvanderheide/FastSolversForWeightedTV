@@ -27,7 +27,7 @@ function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,S}; T::DataType=F
 
     # Gradient operator (w/out shaping)
     stencil = gradient_stencil(real(T).(h))
-    cdims = DenseConvDims((n...,1,1), size(stencil))
+    cdims = DenseConvDims((n..., 1, 1), size(stencil))
     ∇_ = RealConvolutionalOperator{T,dim+2}(cdims, stencil)
 
     # Reshaping operator
@@ -42,7 +42,7 @@ function gradient_operator_batch(n::NTuple{dim,Int64}, nc::Int64, nb::Int64, h::
 
     # Gradient operator (w/out shaping)
     stencil = gradient_stencil(real(T).(h))
-    cdims = DenseConvDims((n...,1,nc*nb), size(stencil))
+    cdims = DenseConvDims((n..., 1, nc*nb), size(stencil))
     ∇_ = RealConvolutionalOperator{T,dim+2}(cdims, stencil)
 
     # Reshaping operator
@@ -56,11 +56,11 @@ end
 
 # Gradient stencil utils
 
-function gradient_stencil(h::NTuple{dim,T}) where {dim,T}
-    k = tuple(2*ones(Int64, dim)...)
-    stencil = zeros(T,k...,1,dim)
-    for i = 1:dim
-        idx = Vector{UnitRange{Int64}}(undef,dim); fill!(idx, 2:2)
+function gradient_stencil(h::NTuple{D,T}) where {D,T<:Real}
+    k = tuple(2*ones(Int64, D)...)
+    stencil = zeros(T,k...,1,D)
+    for i = 1:D
+        idx = Vector{UnitRange{Int64}}(undef,D); fill!(idx, 2:2)
         idx[i] = 1:2
         view(stencil, tuple(idx...)...,1,i)[1:2] .= [T(1)/h[i]; T(-1)/h[i]]
     end

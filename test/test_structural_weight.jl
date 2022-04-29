@@ -15,13 +15,13 @@ rtol = T(1e-6)
 
 # Operators
 η2d = structural_mean(u2d)
-P2d = structural_weight(u2d; η=η2d); flag_gpu && (P2d = P2d |> gpu)
+P2d = structural_weight(u2d; η=η2d, γ=0.9); flag_gpu && (P2d = P2d |> gpu)
 η2d_c = structural_mean(u2d_c)
-P2d_c = structural_weight(u2d_c; η=η2d_c); flag_gpu && (P2d_c = P2d_c |> gpu)
+P2d_c = structural_weight(u2d_c; η=η2d_c, γ=0.9); flag_gpu && (P2d_c = P2d_c |> gpu)
 η3d = structural_mean(u3d)
-P3d = structural_weight(u3d; η=η3d); flag_gpu && (P3d = P3d |> gpu)
+P3d = structural_weight(u3d; η=η3d, γ=0.9); flag_gpu && (P3d = P3d |> gpu)
 η3d_c = structural_mean(u3d_c)
-P3d_c = structural_weight(u3d_c; η=η3d_c); flag_gpu && (P3d_c = P3d_c |> gpu)
+P3d_c = structural_weight(u3d_c; η=η3d_c, γ=0.9); flag_gpu && (P3d_c = P3d_c |> gpu)
 
 # Adjoint test (2d)
 u = randn(T, n2d[1]-1, n2d[2]-1, 2); flag_gpu && (u = u |> gpu)

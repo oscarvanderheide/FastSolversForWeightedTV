@@ -17,7 +17,7 @@ for g = [mixed_norm(2,2,2; T=T), mixed_norm(2,2,1; T=T), mixed_norm(2,2,Inf; T=T
 
     # Proxy
     λ = real(T)(0.5)*norm(y)^2/g(y)
-    x = proxy(y, λ, g)
+    local x = proxy(y, λ, g)
 
     # Gradient test
     fun = proxy_objfun(λ, g)
@@ -25,7 +25,7 @@ for g = [mixed_norm(2,2,2; T=T), mixed_norm(2,2,1; T=T), mixed_norm(2,2,Inf; T=T
 
     # Projection test
     ε = real(T)(0.1)*g(y)
-    x = project(y, ε, g)
+    local x = project(y, ε, g)
     @test g(x) ≈ ε rtol=rtol
 
     ## Gradient test
@@ -43,7 +43,7 @@ for g = [mixed_norm(3,2,2; T=T), mixed_norm(3,2,1; T=T), mixed_norm(3,2,Inf; T=T
 
     # Proxy
     λ = real(T)(0.5)*norm(y)^2/g(y)
-    x = proxy(y, λ, g)
+    local x = proxy(y, λ, g)
 
     # Gradient test
     fun = proxy_objfun(λ, g)
@@ -51,7 +51,7 @@ for g = [mixed_norm(3,2,2; T=T), mixed_norm(3,2,1; T=T), mixed_norm(3,2,Inf; T=T
 
     # Projection test
     ε = real(T)(0.1)*g(y)
-    x = project(y, ε, g)
+    local x = project(y, ε, g)
     @test g(x) ≈ ε rtol=rtol
 
     ## Gradient test

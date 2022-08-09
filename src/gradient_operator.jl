@@ -5,7 +5,7 @@ export gradient_operator, gradient_operator_batch
 
 # Generic convolutional operator
 
-struct RealConvolutionalOperator{T,N}<:AbstractLinearOperator{T,N,N}
+struct ConvolutionalOperator{T,N}<:AbstractLinearOperator{T,N,N}
     cdims::DenseConvDims
     stencil::AbstractArray{<:Real,N}
 end

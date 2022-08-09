@@ -13,7 +13,7 @@ step = real(T)(1e-5)
 rtol = real(T)(1e1*step)
 
 # Norm (2-D)
-for g = [mixed_norm(2,2,2; T=T), mixed_norm(2,2,1; T=T), mixed_norm(2,2,Inf; T=T)]
+for g = [mixed_norm(T,2,2,2), mixed_norm(T,2,2,1), mixed_norm(T,2,2,Inf)]
 
     # Proxy
     λ = real(T)(0.5)*norm(y)^2/g(y)
@@ -39,7 +39,7 @@ n = (256, 256, 256)
 y = randn(T, n..., 3); flag_gpu && (y = y |> gpu)
 
 # Norm (3-D)
-for g = [mixed_norm(3,2,2; T=T), mixed_norm(3,2,1; T=T), mixed_norm(3,2,Inf; T=T)]
+for g = [mixed_norm(T,3,2,2), mixed_norm(T,3,2,1), mixed_norm(T,3,2,Inf)]
 
     # Proxy
     λ = real(T)(0.5)*norm(y)^2/g(y)

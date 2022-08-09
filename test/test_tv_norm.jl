@@ -17,10 +17,11 @@ n = (32,)
 y = randn(CT, n); flag_gpu && (y = y |> gpu)
 h = (T(1),)
 
-g = gradient_norm(2, 1, n, h; T=CT); flag_gpu && (g = g |> gpu)
+g = gradient_norm(2, 1, n, h; complex=true); flag_gpu && (g = g |> gpu)
 
 # Optimization options
-opt = opt_fista(T(1/4); niter=100000, tol_x=nothing, Nesterov=true)
+niter = 1000
+opt = opt_fista(T(1/4); niter=niter, tol_x=nothing, Nesterov=true)
 
 # Proxy
 λ = T(0.5)*norm(y)^2/g(y)
@@ -54,7 +55,8 @@ h = (T(1),T(1))
 g = gradient_norm(2, 1, n, h; T=CT); flag_gpu && (g = g |> gpu)
 
 # Optimization options
-opt = opt_fista(T(1/8); niter=100000, tol_x=nothing, Nesterov=true)
+niter = 1000
+opt = opt_fista(T(1/8); niter=niter, tol_x=nothing, Nesterov=true)
 
 # Proxy
 λ = T(0.5)*norm(y)^2/g(y)
@@ -82,10 +84,11 @@ h = (T(1),T(1),T(1))
 y = randn(T, n[1:2]); flag_gpu && (y = y |> gpu)
 y = CT.(repeat(y; outer=(1,1,8)))
 
-g = gradient_norm(2, 1, n, h; T=CT); flag_gpu && (g = g |> gpu)
+g = gradient_norm(2, 1, n, h; complex=true); flag_gpu && (g = g |> gpu)
 
 # Optimization options
-opt = opt_fista(T(1/12); niter=100000, tol_x=nothing, Nesterov=true)
+niter = 1000
+opt = opt_fista(T(1/12); niter=niter, tol_x=nothing, Nesterov=true)
 
 # Proxy
 λ = T(0.5)*norm(y)^2/g(y)

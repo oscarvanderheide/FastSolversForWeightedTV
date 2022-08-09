@@ -21,7 +21,7 @@ struct MixedNorm{T,D,N1,N2}<:ProximableFunction{T,D}
     proj_opt::ProjOptions
 end
 
-function mixed_norm(D::Number, N1::Number, N2::Number; T::DataType=Float32, proj_opt::Union{Nothing,ProjOptions}=nothing)
+function mixed_norm(T::DataType, D::Number, N1::Number, N2::Number; proj_opt::Union{Nothing,ProjOptions}=nothing)
     proj_opt === nothing && (proj_opt = proj_options())
     (D == 1) && return MixedNorm{T,2,N1,N2}(proj_opt)
     (D == 2) && return MixedNorm{T,3,N1,N2}(proj_opt)
@@ -35,7 +35,7 @@ struct MixedNormBatch{T,D,N1,N2}<:ProximableFunction{T,D}
     proj_opt::ProjOptions
 end
 
-function mixed_norm_batch(D::Number, N1::Number, N2::Number; T::DataType=Float32, proj_opt::Union{Nothing,ProjOptions}=nothing)
+function mixed_norm_batch(T::DataType, D::Number, N1::Number, N2::Number; proj_opt::Union{Nothing,ProjOptions}=nothing)
     proj_opt === nothing && (proj_opt = proj_options())
     (D == 2) && return MixedNormBatch{T,4,N1,N2}(proj_opt)
     (D == 3) && return MixedNormBatch{T,5,N1,N2}(proj_opt)
@@ -93,7 +93,7 @@ end
 # L2Inf norm
 
 function proxy!(p::AbstractArray{CT,N}, λ::T, ::MixedNorm{CT,N,2,Inf}, q::AbstractArray{CT,N}) where {T<:Real,N,CT<:RealOrComplex{T}}
-    project!(p, λ, mixed_norm(N-1, 2, 1; T=CT), q)
+    project!(p, λ, mixed_norm(CT, N-1, 2, 1), q)
     return q .= p.-q
 end
 
@@ -109,19 +109,19 @@ end
 
 # Gradient mixed norm
 
-function gradient_norm(N1::Number, N2::Number, n::NTuple{D,Int64}, h::NTuple{D,S}; T::DataType=Float32, weight::Union{Nothing,AbstractLinearOperator}=nothing, proj_opt::Union{Nothing,ProjOptions}=nothing) where {D,S<:Real}
-    ∇ = gradient_operator(n, h; T=T)
+function gradient_norm(N1::Number, N2::Number, n::NTuple{D,Int64}, h::NTuple{D,T}; weight::Union{Nothing,AbstractLinearOperator}=nothing, proj_opt::Union{Nothing,ProjOptions}=nothing, complex::Bool=false) where {D,T<:Real}
+    ∇ = gradient_operator(n, h; complex=complex)
     weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
-    return mixed_norm(D, N1, N2; T=T, proj_opt=proj_opt)∘A∇
+    return mixed_norm(T, D, N1, N2; proj_opt=proj_opt)∘A∇
 end
 
 
 # Gradient mixed norm (2-D, batch)
 
-function gradient_norm_batch(N1::Number, N2::Number, n::NTuple{D,Int64}, nc::Int64, nb::Int64, h::NTuple{2,S}; T::DataType=Float32, weight::Union{Nothing,AbstractLinearOperator}=nothing, proj_opt::Union{Nothing,ProjOptions}=nothing) where {S<:Real,D}
-    ∇ = gradient_operator_batch(n, nc, nb, h; T=T)
+function gradient_norm_batch(N1::Number, N2::Number, n::NTuple{D,Int64}, nc::Int64, nb::Int64, h::NTuple{2,T}; weight::Union{Nothing,AbstractLinearOperator}=nothing, proj_opt::Union{Nothing,ProjOptions}=nothing, complex::Bool=false) where {T<:Real,D}
+    ∇ = gradient_operator_batch(n, nc, nb, h; complex=complex)
     weight !== nothing ? (A∇ = weight*∇) : (A∇ = ∇)
-    return mixed_norm_batch(D, N1, N2; T=T, proj_opt=proj_opt)∘A∇
+    return mixed_norm_batch(T, D, N1, N2; proj_opt=proj_opt)∘A∇
 end
 
 

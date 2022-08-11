@@ -1,15 +1,16 @@
 # FastSolversForWeightedTV
 
-Set of utilities for computing proximal and projection operators with the TV regularization, and weighted version thereof. The methods are applicable to 2D and 3D problems and support GPU.
+Set of utilities for computing proximal and projection operators with the TV regularization (and weighted version thereof, see reference). The methods are applicable to 1D, 2D and 3D problems and support GPU acceleration.
 
-To install:
+To install, run this within the Julia REPL:
 ```
 ] add https://github.com/grizzuti/FastSolversForWeightedTV.git
 ```
 
-See examples in the folder /examples for applications of total variation regularization via proxy or projection.
+See examples in the folder /examples for applications of total variation regularization via proximal or projection operators.
 
-This package is highly indebted to [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) and related projects.
+This package leverages the abstraction contained in [ConvexOptimizationUtils.jl](https://github.com/grizzuti/ConvexOptimizationUtils.git).
+
 
 ## References
 

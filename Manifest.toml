@@ -63,9 +63,9 @@ version = "3.12.0"
 
 [[deps.ChainRules]]
 deps = ["ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "15423226537996f64d8af4ca86db610d9745f941"
+git-tree-sha1 = "2bebf7552262a9753d3600b719cc7fefdbd7bb21"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.43.1"
+version = "1.43.2"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -105,6 +105,14 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "59d00b3139a9de4eb961057eabb65ac6522be954"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 version = "1.4.0"
+
+[[deps.ConvexOptimizationUtils]]
+deps = ["AbstractLinearOperators", "Flux", "LinearAlgebra", "Roots"]
+git-tree-sha1 = "365fbb63aa1d50c4db4591fe5d44b554c7bd01d8"
+repo-rev = "main"
+repo-url = "https://github.com/grizzuti/ConvexOptimizationUtils.git"
+uuid = "9ed10759-246d-4065-822b-90d32585fe69"
+version = "0.1.0"
 
 [[deps.DataAPI]]
 git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
@@ -206,9 +214,9 @@ version = "0.1.1"
 
 [[deps.GPUCompiler]]
 deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "1067cd05184719ba86f19cf1d49d57f0bcbabbf6"
+git-tree-sha1 = "122d7bcc92abf94cf1a86281ad7a4d0e838ab9e0"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "0.16.2"
+version = "0.16.3"
 
 [[deps.IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]

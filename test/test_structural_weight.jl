@@ -1,17 +1,18 @@
-using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test
+using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test, Random
+Random.seed!(123)
 CUDA.allowscalar(false)
 
 # Geometry
-# flag_gpu = true
-flag_gpu = false
-T = Float64
+flag_gpu = true
+# flag_gpu = false
+T = Float32
 n2d = (256,256)
 n3d = (256,256,256)
 u2d   = randn(T,          n2d); flag_gpu && (u2d   = u2d |> gpu)
 u2d_c = randn(Complex{T}, n2d); flag_gpu && (u2d_c = u2d_c |> gpu)
 u3d   = randn(T,          n3d); flag_gpu && (u3d   = u3d |> gpu)
 u3d_c = randn(Complex{T}, n3d); flag_gpu && (u3d_c = u3d_c |> gpu)
-rtol = T(1e-6)
+rtol = T(1e-3)
 
 # Operators
 η2d = structural_mean(u2d)

@@ -2,7 +2,7 @@
 
 Set of utilities for computing proximal and projection operators with the TV regularization (and weighted version thereof, see reference). The methods are applicable to 1D, 2D and 3D problems and support GPU acceleration.
 
-To install, run this within the Julia REPL:
+To install, run this command within the Julia REPL:
 ```
 ] add https://github.com/grizzuti/FastSolversForWeightedTV.git
 ```

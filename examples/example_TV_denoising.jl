@@ -1,8 +1,8 @@
 using LinearAlgebra, FastSolversForWeightedTV, ConvexOptimizationUtils, Flux, TestImages, PyPlot
 using Random; Random.seed!(123)
 
-flag_gpu=true
-# flag_gpu=false
+flag_gpu = true
+# flag_gpu = false
 
 # Random data
 n = (256, 256, 256)
@@ -16,9 +16,9 @@ P = structural_weight(y_orig; η=η)
 
 # Gradient norms
 h = (1f0, 1f0, 1f0)
-g_sTV = gradient_norm(2, 1, n, h; weight=P)
-g_TV  = gradient_norm(2, 1, n, h; weight=nothing)
 opt = FISTA_optimizer(12f0; Nesterov=true, niter=100, reset_counter=10, verbose=false)
+g_sTV = gradient_norm(2, 1, n, h, opt; weight=P)
+g_TV  = gradient_norm(2, 1, n, h, opt; weight=nothing)
 
 # Artificial noise
 y = y_orig+0.1f0*randn(Float32, n)
@@ -33,8 +33,9 @@ end
 # Proxy
 λ_sTV = 0.5f0*norm(y)^2/g_sTV(y)
 λ_TV  = 0.5f0*norm(y)^2/g_TV(y)
-xproxy_sTV = proxy(y, λ_sTV, g_sTV, opt) |> cpu
-xproxy_TV  = proxy(y, λ_TV, g_TV, opt) |> cpu
+xproxy_sTV = proxy(y, λ_sTV, g_sTV) |> cpu
+xproxy_TV  = proxy(y, λ_TV, g_TV) |> cpu
+y = y |> cpu
 
 # Plot proxy
 vmin = 0f0

@@ -1,6 +1,6 @@
 # Projection operator on vector field
 
-export ProjVectorField, structural_weight, structural_mean
+export ProjVectorField, structural_weight, structural_mean, structural_maximum
 
 
 # Projection on vector field
@@ -27,3 +27,4 @@ Flux.cpu(P::ProjVectorField{T,N}) where {T,N} = ProjVectorField{T,N}(cpu(P.ξ), 
 # Utils
 
 structural_mean(u::AbstractArray{CT,N}; h::NTuple{N,T}=tuple(ones(T,N)...)) where {T<:Real,CT<:RealOrComplex{T},N} = sum(ptnorm2(gradient_eval(u, h)))[1]/prod(size(u))
+structural_maximum(u::AbstractArray{CT,N}; h::NTuple{N,T}=tuple(ones(T,N)...)) where {T<:Real,CT<:RealOrComplex{T},N} = norm(ptnorm2(gradient_eval(u, h)), Inf)

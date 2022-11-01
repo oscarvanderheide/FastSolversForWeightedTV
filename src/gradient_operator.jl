@@ -1,6 +1,6 @@
 #: Gradient operator via convolution
 
-export gradient_operator, gradient_operator_batch, gradient_eval
+export gradient_operator, gradient_eval
 
 
 # Generic convolutional operator
@@ -34,22 +34,6 @@ function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,T}; complex::Bool
     # Reshaping operator
     Rin  = reshape_operator(CT, n, (n...,1,1))
     Rout = reshape_operator(CT, ((n.-1)...,dim,1), ((n.-1)...,dim))
-
-    return Rout*∇_*Rin
-
-end
-
-function gradient_operator_batch(n::NTuple{dim,Int64}, nc::Int64, nb::Int64, h::NTuple{dim,T}; complex::Bool=true) where {dim,T<:Real}
-
-    # Gradient operator (w/out shaping)
-    stencil = gradient_stencil(h; complex=complex)
-    cdims = DenseConvDims((n..., 1, nc*nb), size(stencil))
-    complex ? (CT = Complex{T}) : (CT = T)
-    ∇_ = ConvolutionalOperator{CT,dim+2}(cdims, stencil)
-
-    # Reshaping operator
-    Rin  = reshape_operator(CT, (n...,nc,nb), (n...,1,nc*nb))
-    Rout = reshape_operator(CT, ((n.-1)...,dim,nc*nb), ((n.-1)...,dim*nc,nb))
 
     return Rout*∇_*Rin
 

@@ -2,44 +2,27 @@ using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test, Random
 Random.seed!(123)
 CUDA.allowscalar(false)
 
-# Geometry
-flag_gpu = true
-# flag_gpu = false
 T = Float32
-n2d = (256,256)
-n3d = (256,256,256)
-u2d   = randn(T,          n2d); flag_gpu && (u2d   = u2d |> gpu)
-u2d_c = randn(Complex{T}, n2d); flag_gpu && (u2d_c = u2d_c |> gpu)
-u3d   = randn(T,          n3d); flag_gpu && (u3d   = u3d |> gpu)
-u3d_c = randn(Complex{T}, n3d); flag_gpu && (u3d_c = u3d_c |> gpu)
+n1d = 16
+nc = 3
+nb = 16
 rtol = T(1e-3)
 
-# Operators
-η2d = structural_mean(u2d)
-P2d = structural_weight(u2d; η=η2d, γ=T(0.9)); flag_gpu && (P2d = P2d |> gpu)
-η2d_c = structural_mean(u2d_c)
-P2d_c = structural_weight(u2d_c; η=η2d_c, γ=T(0.9)); flag_gpu && (P2d_c = P2d_c |> gpu)
-η3d = structural_mean(u3d)
-P3d = structural_weight(u3d; η=η3d, γ=T(0.9)); flag_gpu && (P3d = P3d |> gpu)
-η3d_c = structural_mean(u3d_c)
-P3d_c = structural_weight(u3d_c; η=η3d_c, γ=T(0.9)); flag_gpu && (P3d_c = P3d_c |> gpu)
+for dim = 1:3, flag_gpu = [true, false], is_complex = [true, false]
 
-# Adjoint test (2d)
-u = randn(T, n2d[1]-1, n2d[2]-1, 2); flag_gpu && (u = u |> gpu)
-v = randn(T, n2d[1]-1, n2d[2]-1, 2); flag_gpu && (v = v |> gpu)
-@test dot(P2d*u, v) ≈ dot(u, adjoint(P2d)*v) rtol = rtol
+    # Inputs
+    n = tuple(repeat([n1d,]; outer=dim)...)
+    h = tuple(abs.(randn(T, dim))...)
+    CT = is_complex ? Complex{T} : T
 
-# Adjoint test (2d_c)
-u = randn(Complex{T}, n2d[1]-1, n2d[2]-1, 2); flag_gpu && (u = u |> gpu)
-v = randn(Complex{T}, n2d[1]-1, n2d[2]-1, 2); flag_gpu && (v = v |> gpu)
-@test dot(P2d_c*u, v) ≈ dot(u, adjoint(P2d_c)*v) rtol = rtol
+    # Operators
+    u = randn(CT, n); flag_gpu && (u = u |> gpu)
+    η = structural_mean(u)
+    P = structural_weight(u; η=η, γ=T(0.9)); flag_gpu && (P = P |> gpu)
 
-# Adjoint test (3d)
-u = randn(T, n3d[1]-1, n3d[2]-1, n3d[3]-1, 3); flag_gpu && (u = u |> gpu)
-v = randn(T, n3d[1]-1, n3d[2]-1, n3d[3]-1, 3); flag_gpu && (v = v |> gpu)
-@test dot(P3d*u, v) ≈ dot(u, adjoint(P3d)*v) rtol = rtol
+    # Adjoint test
+    u = randn(CT, (n.-1)..., dim); flag_gpu && (u = u |> gpu)
+    v = randn(CT, (n.-1)..., dim); flag_gpu && (v = v |> gpu)
+    @test dot(P*u, v) ≈ dot(u, P'*v) rtol = rtol
 
-# Adjoint test (3d_c)
-u = randn(Complex{T}, n3d[1]-1, n3d[2]-1, n3d[3]-1, 3); flag_gpu && (u = u |> gpu)
-v = randn(Complex{T}, n3d[1]-1, n3d[2]-1, n3d[3]-1, 3); flag_gpu && (v = v |> gpu)
-@test dot(P3d_c*u, v) ≈ dot(u, adjoint(P3d_c)*v) rtol = rtol
+end

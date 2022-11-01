@@ -17,8 +17,8 @@ P = structural_weight(y_orig; η=η)
 # Gradient norms
 h = (1f0, 1f0, 1f0)
 opt = FISTA_optimizer(12f0; Nesterov=true, niter=100, reset_counter=10, verbose=false)
-g_sTV = gradient_norm(2, 1, n, h, opt; weight=P)
-g_TV  = gradient_norm(2, 1, n, h, opt; weight=nothing)
+g_sTV = gradient_norm(2, 1, n, h; weight=P, optimizer=opt)
+g_TV  = gradient_norm(2, 1, n, h; weight=nothing, optimizer=opt)
 
 # Artificial noise
 y = y_orig+0.1f0*randn(Float32, n)
@@ -54,4 +54,4 @@ subplot(1,3,3)
 imshow(xproxy_sTV[:,:,128]; cmap="gray", vmin=vmin, vmax=vmax)
 title("sTV denoising (z=128)")
 axis("off")
-savefig(string("./plots/sTVvsTV_proxy.png"), dpi=300, transparent=false, bbox_inches="tight")
+savefig(string("./sTVvsTV_proxy.png"), dpi=300, transparent=false, bbox_inches="tight")

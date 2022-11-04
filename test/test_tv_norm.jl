@@ -1,7 +1,6 @@
 using LinearAlgebra, FastSolversForWeightedTV, ConvexOptimizationUtils, CUDA, Flux, Test, Random
 Random.seed!(123)
 CUDA.allowscalar(false)
-include("./test_utils.jl")
 
 T = Float64
 n1d = 16
@@ -20,13 +19,13 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
     CT = is_complex ? Complex{T} : T
     n = tuple(repeat([n1d,]; outer=dim)...)
     h = tuple(ones(T, dim)...)
-    y = randn(CT, n); flag_gpu && (y = y |> gpu)
+    y = randn(CT, n); flag_gpu && (y = CT.(y |> gpu))
     g = gradient_norm(2, 1, n, h; complex=is_complex, optimizer=opt); flag_gpu && (g = g |> gpu)
 
     # Gradient test (proxy)
     λ = T(0.5)*norm(y)^2/g(y)
     fun = proxy_objfun(g, λ)
-    test_grad(fun, y; step=step, rtol=rtol)
+    @test test_grad(fun, y; step=step, rtol=rtol)
 
     # Projection test
     ε = T(0.8)*g(y)
@@ -35,6 +34,6 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
 
     # Gradient test (projection)
     fun = proj_objfun(g, ε)
-    test_grad(fun, y; step=step, rtol=rtol)
+    @test test_grad(fun, y; step=step, rtol=rtol)
 
 end

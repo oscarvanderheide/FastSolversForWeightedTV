@@ -5,7 +5,8 @@ flag_gpu = true
 # flag_gpu = false
 
 # Random data
-n = (256, 256, 256)
+n = (32, 32, 32)
+# n = (256, 256, 256)
 y_orig = Float32.(TestImages.shepp_logan(n[1:2]...))
 y_orig = repeat(y_orig; outer=(1,1,n[3]))
 y_orig = y_orig/norm(y_orig, Inf)

@@ -144,7 +144,7 @@ version = "0.1.3"
 
 [[deps.ConvexOptimizationUtils]]
 deps = ["AbstractLinearOperators", "LinearAlgebra", "Roots"]
-git-tree-sha1 = "0ea3c0325982f6115ed4dfb7587c179de082021f"
+git-tree-sha1 = "84778a7d89674eef5f053467be9da60474e74ffb"
 repo-rev = "main"
 repo-url = "https://github.com/grizzuti/ConvexOptimizationUtils.git"
 uuid = "9ed10759-246d-4065-822b-90d32585fe69"

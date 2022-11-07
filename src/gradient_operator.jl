@@ -17,16 +17,13 @@ AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::CuArray{T,N
 AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::AbstractArray{T,N}) where {T,N} = ∇conv_data(v, A.stencil, A.cdims)
 AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::CuArray{T,N}) where {T<:Complex,N} = ∇conv_data(real(v), real(A.stencil), A.cdims)+im*∇conv_data(imag(v), real(A.stencil), A.cdims) ### workaround for complex convolution for cuarrays
 
-Flux.gpu(A::ConvolutionalOperator{T,N}) where {T,N} = ConvolutionalOperator{T,N}(A.cdims, gpu(A.stencil))
-Flux.cpu(A::ConvolutionalOperator{T,N}) where {T,N} = ConvolutionalOperator{T,N}(A.cdims, cpu(A.stencil))
-
 
 # Gradient operator
 
-function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,T}; complex::Bool=true) where {dim,T<:Real}
+function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,T}; complex::Bool=true, gpu::Bool=false) where {dim,T<:Real}
 
     # Gradient operator (w/out shaping)
-    stencil = gradient_stencil(h; complex=complex)
+    stencil = gradient_stencil(h; complex=complex, gpu=gpu)
     cdims = DenseConvDims((n..., 1, 1), size(stencil))
     complex ? (CT = Complex{T}) : (CT = T)
     ∇_ = ConvolutionalOperator{CT,dim+2}(cdims, stencil)
@@ -42,15 +39,16 @@ end
 
 # Gradient stencil utils
 
-function gradient_stencil(h::NTuple{D,T}; complex::Bool=false) where {D,T<:Real}
+function gradient_stencil(h::NTuple{D,T}; complex::Bool=false, gpu::Bool=false) where {D,T<:Real}
     k = tuple(2*ones(Int64, D)...)
-    stencil = zeros(T,k...,1,D)
+    complex ? (CT = Complex{T}) : (CT = T)
+    stencil = zeros(CT,k...,1,D)
     for i = 1:D
         idx = Vector{UnitRange{Int64}}(undef,D); fill!(idx, 2:2)
         idx[i] = 1:2
         view(stencil, tuple(idx...)...,1,i)[1:2] .= [T(1)/h[i]; T(-1)/h[i]]
     end
-    complex ? (return Base.complex(stencil)) : (return stencil)
+    gpu ? (return convert(CuArray, stencil)) : (return stencil)
 end
 
 

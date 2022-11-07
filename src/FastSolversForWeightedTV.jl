@@ -1,6 +1,6 @@
 module FastSolversForWeightedTV
 
-using LinearAlgebra, AbstractLinearOperators, ConvexOptimizationUtils, Flux, CUDA
+using LinearAlgebra, AbstractLinearOperators, ConvexOptimizationUtils, NNlib, CUDA
 
 const RealOrComplex{T<:Real} = Union{T,Complex{T}}
 

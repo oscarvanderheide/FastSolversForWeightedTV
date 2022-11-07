@@ -1,4 +1,4 @@
-using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test, Random
+using LinearAlgebra, CUDA, FastSolversForWeightedTV, Test, Random
 Random.seed!(123)
 CUDA.allowscalar(false)
 
@@ -16,13 +16,13 @@ for dim = 1:3, flag_gpu = [true, false], is_complex = [true, false]
     CT = is_complex ? Complex{T} : T
 
     # Operators
-    u = randn(CT, n); flag_gpu && (u = u |> gpu)
+    u = randn(CT, n); flag_gpu && (u = convert(CuArray, u))
     η = structural_mean(u)
-    P = structural_weight(u; η=η, γ=T(0.9)); flag_gpu && (P = P |> gpu)
+    P = structural_weight(u; η=η, γ=T(0.9))
 
     # Adjoint test
-    u = randn(CT, (n.-1)..., dim); flag_gpu && (u = u |> gpu)
-    v = randn(CT, (n.-1)..., dim); flag_gpu && (v = v |> gpu)
+    u = randn(CT, (n.-1)..., dim); flag_gpu && (u = convert(CuArray, u))
+    v = randn(CT, (n.-1)..., dim); flag_gpu && (v = convert(CuArray, v))
     @test dot(P*u, v) ≈ dot(u, P'*v) rtol = rtol
 
 end

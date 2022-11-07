@@ -1,4 +1,4 @@
-using LinearAlgebra, CUDA, Flux, FastSolversForWeightedTV, Test, Random
+using LinearAlgebra, CUDA, FastSolversForWeightedTV, Test, Random
 Random.seed!(123)
 CUDA.allowscalar(false)
 
@@ -13,12 +13,12 @@ for dim = 1:3, flag_gpu = [true, false], is_complex = [true, false]
     # Operator
     n = tuple(repeat([n1d,]; outer=dim)...)
     h = tuple(abs.(randn(T, dim))...)
-    ∇ = gradient_operator(n, h; complex=is_complex); flag_gpu && (∇ = ∇ |> gpu)
+    ∇ = gradient_operator(n, h; complex=is_complex, gpu=flag_gpu)
 
     # Adjoint test
     CT = is_complex ? Complex{T} : T
-    u = randn(CT, n);              flag_gpu && (u = u |> gpu)
-    v = randn(CT, (n.-1)..., dim); flag_gpu && (v = v |> gpu)
+    u = randn(CT, n);              flag_gpu && (u = convert(CuArray, u))
+    v = randn(CT, (n.-1)..., dim); flag_gpu && (v = convert(CuArray, v))
     @test dot(∇*u, v) ≈ dot(u, ∇'*v) rtol=rtol
 
     # Consistency w/ stencil-free gradient eval

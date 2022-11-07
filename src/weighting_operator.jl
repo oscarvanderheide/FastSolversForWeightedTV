@@ -20,9 +20,6 @@ function structural_weight(u::AbstractArray{CT,N}; h::NTuple{N,T}=tuple(ones(T,N
     return ProjVectorField{CT,N+1}(∇u./ConvexOptimizationUtils.ptnorm2(∇u; η=η), γ)
 end
 
-Flux.gpu(P::ProjVectorField{T,N}) where {T,N} = ProjVectorField{T,N}(gpu(P.ξ), P.γ)
-Flux.cpu(P::ProjVectorField{T,N}) where {T,N} = ProjVectorField{T,N}(cpu(P.ξ), P.γ)
-
 
 # Utils
 

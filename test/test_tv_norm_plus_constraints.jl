@@ -6,13 +6,13 @@ T = Float64
 n1d = 16
 nc = 3
 step = T(1e-5)
-rtol = T(1e-3)
+rtol = T(1e-2)
 
 for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
     
     # FISTA optimizer
     niter = 1000
-    opt = conjugate_FISTA(T(4*dim); Nesterov=true, niter=niter, reset_counter=20, verbose=false)
+    opt = conjugateproject_FISTA(T(4*dim); Nesterov=true, niter=niter, reset_counter=20, verbose=false)
 
     # TV norm
     CT = is_complex ? Complex{T} : T
@@ -27,16 +27,17 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
 
     # Gradient test (proxy)
     λ = T(0.5)*norm(y)^2/g(y)
-    fun = proxy_objfun(g, λ; options=opt)
+    fun = proxy_objfun(g+indicator(C), λ; options=opt)
     @test test_grad(fun, y; step=step, rtol=rtol)
 
     # Projection test
     ε = T(0.1)*g(y)
-    x = project(y, ε, g, opt)
+    x = project(y, ε, g+indicator(C), opt)
     @test (g(x) ≤ ε) || isapprox(g(x), ε; rtol=rtol)
+    @test x ∈ C
 
     # Gradient test (projection)
-    fun = proj_objfun(g, ε; options=opt)
+    fun = proj_objfun(g+indicator(C), ε; options=opt)
     @test test_grad(fun, y; step=step, rtol=rtol)
 
 end

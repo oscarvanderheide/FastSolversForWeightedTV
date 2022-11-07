@@ -9,6 +9,7 @@ n = (256, 256, 256)
 y_orig = Float32.(TestImages.shepp_logan(n[1:2]...))
 y_orig = repeat(y_orig; outer=(1,1,n[3]))
 y_orig = y_orig/norm(y_orig, Inf)
+flag_gpu && (y_orig = y_orig |> gpu)
 
 # Weight for structural norm
 η = 0.1f0*structural_mean(y_orig)
@@ -16,25 +17,18 @@ P = structural_weight(y_orig; η=η)
 
 # Gradient norms
 h = (1f0, 1f0, 1f0)
-opt = FISTA_optimizer(12f0; Nesterov=true, niter=100, reset_counter=10, verbose=false)
-g_sTV = gradient_norm(2, 1, n, h; weight=P, optimizer=opt)
-g_TV  = gradient_norm(2, 1, n, h; weight=nothing, optimizer=opt)
+opt = conjugate_FISTA(12f0; Nesterov=true, niter=100, reset_counter=10, verbose=false)
+g_sTV = gradient_norm(2, 1, n, h; weight=P, gpu=flag_gpu)
+g_TV  = gradient_norm(2, 1, n, h; weight=nothing, gpu=flag_gpu)
 
 # Artificial noise
-y = y_orig+0.1f0*randn(Float32, n)
-
-# Moving arrays to gpu
-if flag_gpu
-    y = y |> gpu
-    g_sTV = g_sTV |> gpu
-    g_TV = g_TV |> gpu
-end
+flag_gpu ? (y = y_orig+0.1f0*CUDA.randn(Float32, n)) : (y = y_orig+0.1f0*randn(Float32, n))
 
 # Proxy
 λ_sTV = 0.5f0*norm(y)^2/g_sTV(y)
 λ_TV  = 0.5f0*norm(y)^2/g_TV(y)
-xproxy_sTV = proxy(y, λ_sTV, g_sTV) |> cpu
-xproxy_TV  = proxy(y, λ_TV, g_TV) |> cpu
+xproxy_sTV = proxy(y, λ_sTV, g_sTV, opt) |> cpu
+xproxy_TV  = proxy(y, λ_TV, g_TV, opt) |> cpu
 y = y |> cpu
 
 # Plot proxy

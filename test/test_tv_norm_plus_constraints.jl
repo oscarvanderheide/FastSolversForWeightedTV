@@ -1,4 +1,4 @@
-using LinearAlgebra, FastSolversForWeightedTV, ConvexOptimizationUtils, CUDA, Test, Random
+using LinearAlgebra, FastSolversForWeightedTV, AbstractProximableFunctions, CUDA, Test, Random
 Random.seed!(123)
 CUDA.allowscalar(false)
 
@@ -12,7 +12,7 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
     
     # FISTA optimizer
     niter = 1000
-    opt = conjugateproject_FISTA(T(4*dim); Nesterov=true, niter=niter, reset_counter=20, verbose=false)
+    opt = FISTA_options(T(4*dim); Nesterov=true, niter=niter, reset_counter=20, verbose=false)
 
     # TV norm
     CT = is_complex ? Complex{T} : T
@@ -27,12 +27,12 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
 
     # Gradient test (proxy)
     λ = T(0.5)*norm(y)^2/g(y)
-    fun = proxy_objfun(g+indicator(C), λ; options=opt)
+    fun = prox_objfun(g+indicator(C), λ; options=opt)
     @test test_grad(fun, y; step=step, rtol=rtol)
 
     # Projection test
     ε = T(0.1)*g(y)
-    x = project(y, ε, g+indicator(C), opt)
+    x = proj(y, ε, g+indicator(C), opt)
     @test (g(x) ≤ ε) || isapprox(g(x), ε; rtol=rtol)
     @test x ∈ C
 

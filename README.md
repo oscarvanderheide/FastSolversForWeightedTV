@@ -9,7 +9,7 @@ To install, run this command within the Julia REPL:
 
 See examples in the folder /examples for applications of total variation regularization via proximal or projection operators.
 
-This package leverages the abstraction contained in [ConvexOptimizationUtils.jl](https://github.com/grizzuti/ConvexOptimizationUtils.git).
+This package leverages the abstraction contained in [AbstractProximableFunctions.jl](https://github.com/grizzuti/AbstractProximableFunctions.git).
 
 
 ## References

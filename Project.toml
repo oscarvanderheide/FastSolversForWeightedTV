@@ -5,8 +5,8 @@ version = "1.0.0"
 
 [deps]
 AbstractLinearOperators = "bb902dec-a34b-4f3c-9707-4856bea60ee0"
+AbstractProximableFunctions = "9ed10759-246d-4065-822b-90d32585fe69"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-ConvexOptimizationUtils = "9ed10759-246d-4065-822b-90d32585fe69"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 

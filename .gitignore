@@ -1,4 +1,4 @@
-data/
+docs/build
 *.png
 *.txt
 *.jld

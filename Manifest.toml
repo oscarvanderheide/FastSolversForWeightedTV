@@ -12,7 +12,7 @@ version = "1.2.1"
 
 [[deps.AbstractLinearOperators]]
 deps = ["Flux", "LinearAlgebra"]
-git-tree-sha1 = "0213f3f205dd35da8495be90c397632eb20af25e"
+git-tree-sha1 = "7a64da75000100ec22585916aa0a07fbe090ed13"
 repo-rev = "main"
 repo-url = "https://github.com/grizzuti/AbstractLinearOperators.git"
 uuid = "bb902dec-a34b-4f3c-9707-4856bea60ee0"
@@ -20,7 +20,7 @@ version = "1.0.0"
 
 [[deps.AbstractProximableFunctions]]
 deps = ["AbstractLinearOperators", "LinearAlgebra", "Roots"]
-git-tree-sha1 = "bd906aab29b9f07bee9dae773f7f9f448b61ce1e"
+git-tree-sha1 = "3cf74507413dc4337d2ad6f78f8642bbc20e4eac"
 repo-rev = "main"
 repo-url = "https://github.com/grizzuti/AbstractProximableFunctions.git"
 uuid = "9ed10759-246d-4065-822b-90d32585fe69"

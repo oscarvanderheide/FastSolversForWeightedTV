@@ -3,10 +3,14 @@ using Documenter, FastSolversForWeightedTV
 format = Documenter.HTML()
 
 Introduction = "Introduction" => "index.md"
+Installation = "Installation" => "installation.md"
+GettingStarted = "Examples" => "examples.md"
 MainFunctions = "Main functions" => "functions.md"
 
 PAGES = [
     Introduction,
+    Installation,
+    GettingStarted,
     MainFunctions
     ]
 
@@ -18,24 +22,3 @@ makedocs(
     checkdocs = :exports,
     pages = PAGES
 )
-
-# makedocs(
-#     sitename = "FastSolversForWeightedTV",
-#     format = Documenter.HTML(),
-#     modules = [FastSolversForWeightedTV],
-#     pages = [
-#         "index.md",
-#         "Installation instructions" => "installation.md",
-#         "Main functions" => "functions.md"#,
-#         # "Subsection" => [
-#         #     ...
-#         # ]
-#     ]
-# )
-
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
-#=deploydocs(
-    repo = "<repository url>"
-)=#

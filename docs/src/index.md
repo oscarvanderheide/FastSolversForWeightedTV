@@ -1,10 +1,6 @@
-```@contents
-```
-
-
 # Introduction
 
-FastSolversForWeightedTV.jl allows the computation of the proximal operator or projection operator associated to the reference-guided total variation regularization (TV) introduced in `[1]` (see also `[2]` for an application to motion correction in MRI). This implementation comprises the 2D and 3D cases, and supports GPU acceleration.
+FastSolversForWeightedTV.jl allows the computation of the proximal operator or projection operator associated to the reference-guided total variation regularization (TV) introduced in `[1]` (see also `[2]` for an application to motion correction in MRI). This implementation comprises both 2D and 3D, and supports GPU acceleration.
 
 The definition of the reference-guided TV regularization is:
 ```math
@@ -16,13 +12,7 @@ Here, the reference image (2D/3D) is denoted by ``\mathbf{v}``, ``\nabla`` is th
 ```
 where the constant ``\eta>0`` stabilizes the division.
 
-### Related publications
+# Related publications
 
 1. Ehrhardt, M. J., and Betcke, M. M., (2015). Multi-Contrast MRI Reconstruction with Structure-Guided Total Variation (https://arxiv.org/abs/1511.06631), _SIAM J. IMAGING SCIENCES_, **9(3)**, 1084-1106, doi:[10.1137/15M1047325](https://doi.org/10.1137/15M1047325)
 2. Rizzuti, G., Sbrizzi, A., and van Leeuwen, T., (2022). Joint Retrospective Motion Correction and Reconstruction for Brain MRI With a Reference Contrast, _IEEE Transaction on Computational Imaging_, **8**, 490-504, doi:[10.1109/TCI.2022.3183383](hhtps://doi.org/10.1109/TCI.2022.3183383)
-
-
-# Index
-
-```@index
-```

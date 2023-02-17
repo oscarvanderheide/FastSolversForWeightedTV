@@ -22,14 +22,6 @@ where the constant ``\eta>0`` stabilizes the division.
 2. Rizzuti, G., Sbrizzi, A., and van Leeuwen, T., (2022). Joint Retrospective Motion Correction and Reconstruction for Brain MRI With a Reference Contrast, _IEEE Transaction on Computational Imaging_, **8**, 490-504, doi:[10.1109/TCI.2022.3183383](hhtps://doi.org/10.1109/TCI.2022.3183383)
 
 
-### Installation instructions
-
-In the Julia REPL, simply type `]` and
-```julia
-(v1.8) pkg> add https://github.com/grizzuti/FastSolversForWeightedTV.git
-```
-
-
 # Index
 
 ```@index

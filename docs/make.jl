@@ -22,3 +22,7 @@ makedocs(
     checkdocs = :exports,
     pages = PAGES
 )
+
+deploydocs(
+    repo = "https://github.com/grizzuti/FastSolversForWeightedTV.git",
+)

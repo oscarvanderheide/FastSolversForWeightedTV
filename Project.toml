@@ -8,11 +8,9 @@ AbstractProximableFunctions = "9ed10759-246d-4065-822b-90d32585fe69"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
 [compat]
 julia = "1.8"
-Documenter = "0.27"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

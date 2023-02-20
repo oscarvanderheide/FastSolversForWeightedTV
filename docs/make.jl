@@ -24,5 +24,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "https://github.com/grizzuti/FastSolversForWeightedTV.git",
+    repo = "github.com/grizzuti/FastSolversForWeightedTV.jl.git",
 )

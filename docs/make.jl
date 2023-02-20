@@ -4,7 +4,7 @@ format = Documenter.HTML()
 
 Introduction = "Introduction" => "index.md"
 Installation = "Installation" => "installation.md"
-GettingStarted = "Examples" => "examples.md"
+GettingStarted = "Getting started" => "examples.md"
 MainFunctions = "Main functions" => "functions.md"
 
 PAGES = [

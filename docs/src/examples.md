@@ -1,29 +1,97 @@
-# Examples
+# Getting started
+
+## TV vs reference-guided TV denoising
 
 We briefly describe how to use the tools provided by this package. We focus, here, on a 3D TV-denoising example with GPU acceleration.
 
-For starters, let's make sure to install all the needed packages! Type `]` and
+For starters, let's make sure to install all the needed packages! Besides, `FastSolversForWeightedTV`, we need `AbstractLinearOperators` and `AbstractProximableFunctions` that provide all the general utilities to specify the solvers needed for the computation of the proximal/projection operator. Type `]` in the Julia REPL and
 ```julia
-@(v1.8) pkg> add CUDA, TestImages, PyPlot, https://github.com/grizzuti/AbstractLinearOperators.git, https://github.com/grizzuti/AbstractProximableFunctions.git, https://github.com/grizzuti/FastSolversForWeightedTV.git
+@(v1.8) pkg> https://github.com/grizzuti/AbstractLinearOperators.git, https://github.com/grizzuti/AbstractProximableFunctions.git, https://github.com/grizzuti/FastSolversForWeightedTV.git
 ```
-The packages `AbstractLinearOperators`, `AbstractProximableFunctions` provide some general utilities that are combined with `FastSolversForWeightedTV` to specify the solvers needed for the computation of the proximal operator. In this tutorial, we use `PyPlot` for image visualization, but many other packages may fit the bill.
+For this tutorial, we also need `CUDA`, `PyPlot`, and `TestImages`. To install,
+```julia
+@(v1.8) pkg> add CUDA, TestImages, PyPlot
+```
+Here, we use `PyPlot` for image visualization, but many other packages may fit the bill.
 
-To load the relevant modules, type in the Julia REPL:
+To load the relevant modules:
 ```julia
 # Package load
 using LinearAlgebra, CUDA, TestImages, PyPlot
 using AbstractProximableFunctions, FastSolversForWeightedTV
 ```
 
-Let's load the 2D Shepp-Logan phantom and make it 3D:
+Let's load the 2D Shepp-Logan phantom and make a 3D volume out of it. Also let's contaminate the volume with some random noise:
 ```julia
 # Prepare data
-n = (256, 256, 256)
-y_clean = Float32.(TestImages.shepp_logan(n[1:2]...)) # 2D Shepp-Logan of size 256x256
-y_clean = repeat(y_clean; outer=(1,1,n[3]))           # 3D "augmentation"
-y_clean = y_clean/norm(y_clean, Inf)                  # Normalization
-y_noisy = y_clean+0.1f0*randn(Float32, n)             # Adding noise
-y_noisy = CuArray(noisy)                              # Move data to GPU
+n = (256, 256, 256)                                   # Image size
+x_clean = Float32.(TestImages.shepp_logan(n[1:2]...)) # 2D Shepp-Logan of size 256x256
+x_clean = repeat(x_clean; outer=(1,1,n[3]))           # 3D "augmentation"
+x_clean = CuArray(x_clean)                            # Move data to GPU
+x_clean = x_clean/norm(x_clean, Inf)                  # Normalization
+x_noisy = x_clean+0.1f0*CUDA.randn(Float32, n)        # Adding noise
 ```
 
-Now that we prepared the noisy data, we define the regularization functional based on TV.
+Now that we prepared the noisy data, we define the regularization functional based on TV that we can use to clean up the noisy image. For that purpose:
+```julia
+h = (1f0, 1f0, 1f0)                                                     # Grid spacing
+L = 12f0                                                                # Spectral norm of the gradient operator
+opt = FISTA_options(L; Nesterov=true,
+                       niter=20,
+                       reset_counter=10,
+                       verbose=false)                                   # FISTA options
+g_TV  = gradient_norm(2, 1, n, h; complex=false, gpu=true, options=opt) # TV
+```
+To keep in mind: the spectral norm of the gradient operator must be known (but that's easy, e.g. ``L=4\sum_i1/h_i^2``). In this example, the input image is real valued, hence `complex=false`. Also, note that we must specify a FISTA solver to use TV. In order to perform TV denoising, type
+```julia
+λ = 0.5f0*norm(x_clean-x_noisy)^2/g_TV(x_clean) # Denoising weight
+x_TV = prox(x_noisy, λ, g_TV)                   # TV denoising
+```
+
+We can get an even better result by using a reference volume to guide TV. The ideal reference is the ground-truth! So, for this time, let's cheat by setting:
+```julia
+η = 0.1f0*structural_mean(x_clean)                                                 # Stabilization term
+P = structural_weight(x_clean; η=η)                                                # Weight based on a given reference
+g_rTV  = gradient_norm(2, 1, n, h; weight=P, complex=false, gpu=true, options=opt) # Reference-guided TV
+```
+Denoise!
+```julia
+λ = 0.5f0*norm(x_clean-x_noisy)^2/g_rTV(x_clean) # Denoising weight
+x_rTV = prox(x_noisy, λ, g_rTV)                  # Reference-guided TV denoising
+```
+
+Finally, compare the different results:
+```julia
+x_clean = Array(x_clean) # Move to CPU
+x_noisy = Array(x_noisy) # Move to CPU
+x_TV = Array(x_TV)       # Move to CPU
+x_rTV = Array(x_rTV)     # Move to CPU
+
+# Plot
+figure()
+subplot(1, 4, 1)
+title("Noisy")
+imshow(abs.(x_noisy[:,:,129]); vmin=0, vmax=1, cmap="gray")
+subplot(1, 4, 2)
+title("TV")
+imshow(abs.(x_TV[:,:,129]); vmin=0, vmax=1, cmap="gray")
+subplot(1, 4, 3)
+title("rTV")
+imshow(abs.(x_rTV[:,:,129]); vmin=0, vmax=1, cmap="gray")
+subplot(1, 4, 4)
+title("Ground-truth")
+imshow(abs.(x_clean[:,:,129]); vmin=0, vmax=1, cmap="gray")
+```
+
+## Proximal vs projection
+
+In inverse problems, deciding the weight ``\lambda`` of the regularization term ``g`` is no trivial matter. For these reasons, sometime it is preferable to set hard constraints ``g\le\varepsilon``. This package provides the utilities to compute projection operators (as defined in Section [Proximal and projection operators](@ref)), for example:
+```julia
+ε = 0.5f0*g_rTV(x_clean)             # Noise level
+x_rTV_proj = proj(x_noisy, ε, g_rTV) # Projection
+```
+Alternatively (in eye-candy fashion):
+```julia
+C = g_rTV ≤ 0.5f0             # Constraint set
+x_rTV_proj = proj(x_noisy, C) # Projection
+```

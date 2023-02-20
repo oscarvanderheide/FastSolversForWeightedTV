@@ -1,5 +1,7 @@
 # Introduction
 
+## Reference-guided TV
+
 FastSolversForWeightedTV.jl allows the computation of the proximal operator or projection operator associated to the reference-guided total variation regularization (TV) introduced in `[1]` (see also `[2]` for an application to motion correction in MRI). This implementation comprises both 2D and 3D, and supports GPU acceleration.
 
 The definition of the reference-guided TV regularization is:
@@ -11,6 +13,17 @@ Here, the reference image (2D/3D) is denoted by ``\mathbf{v}``, ``\nabla`` is th
 \hat{\nabla\mathbf{v}}|_i=\dfrac{\nabla\mathbf{v}|_i}{\sqrt{||\nabla\mathbf{v}|_i||_2^2+\eta^2}},
 ```
 where the constant ``\eta>0`` stabilizes the division.
+
+## Proximal and projection operators
+
+The main functionalities provided by this package are related to the computation of the proximal and projection operators. For a generic convex functional ``g``, the proximal operator is defined as
+```math
+\mathrm{prox}_{\lambda{}g}(\mathbf{w})=\arg\min_{\mathbf{u}}\dfrac{1}{2}||\mathbf{u}-\mathbf{w}||^2+\lambda{}g(\mathbf{u}).
+```
+Similarly, the projection operator is defined as
+```math
+\mathrm{proj}_{\varepsilon, g}(\mathbf{w})=\arg\min_{g(\mathbf{u})\le\varepsilon}\dfrac{1}{2}||\mathbf{u}-\mathbf{w}||^2.
+```
 
 # Related publications
 

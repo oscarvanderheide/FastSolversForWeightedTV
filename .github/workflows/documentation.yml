@@ -21,7 +21,7 @@ jobs:
         run: julia --project=docs/ -e 'using Pkg;
                                        Pkg.develop(url="https://github.com/grizzuti/AbstractLinearOperators.git");
                                        Pkg.develop(url="https://github.com/grizzuti/AbstractProximableFunctions.git");
-                                       Pkg.develop(PackageSpec(path=pwd()));
+                                      #  Pkg.develop(PackageSpec(path=pwd()));
                                        Pkg.instantiate()'
       - name: Build and deploy
         env:

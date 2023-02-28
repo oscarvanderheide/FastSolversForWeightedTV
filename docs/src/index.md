@@ -6,7 +6,7 @@ FastSolversForWeightedTV.jl allows the computation of the proximal operator or p
 
 The definition of the reference-guided TV regularization is:
 ```math
-\mathrm{TV}(\mathbf{u}; \mathbf{v})=||\Pi(\mathbf{v})\nabla\mathbf{u}||_{2,1}=\sum_i ||\Pi(\mathbf{v})|_i\nabla\mathbf{u}|_i||_2,\qquad\Pi(\mathbf{v})|_i=\mathrm{I}_{d\times d}-\hat{\nabla\mathbf{v}}|_i^{\ast}\hat{\nabla\mathbf{v}}|_i.
+\mathrm{TV}(\mathbf{u}; \mathbf{v})=||\Pi(\mathbf{v})\nabla\mathbf{u}||_{2,1}=\sum_i ||\Pi(\mathbf{v})|_i\nabla\mathbf{u}|_i||_2,\qquad\Pi(\mathbf{v})|_i=\mathrm{I}_{d\times d}-\hat{\nabla\mathbf{v}}|_i{}^{\mathrm{H}}\hat{\nabla\mathbf{v}}|_i.
 ```
 Here, the reference image (2D/3D) is denoted by ``\mathbf{v}``, ``\nabla`` is the discretized gradient operator, and the index ``i`` refers to the related grid point. ``\mathrm{I}_{d\times d}`` is the ``d\times d`` identity matrix (where ``d=2,3``, depending on the dimension of the problem). The normalized reference gradient field is defined by:
 ```math
@@ -18,7 +18,7 @@ where the constant ``\eta>0`` stabilizes the division.
 
 The main functionalities provided by this package are related to the computation of the proximal and projection operators. For a generic convex functional ``g``, the proximal operator is defined as
 ```math
-\mathrm{prox}_{\lambda{}g}(\mathbf{w})=\arg\min_{\mathbf{u}}\dfrac{1}{2}||\mathbf{u}-\mathbf{w}||^2+\lambda{}g(\mathbf{u}).
+\mathrm{prox}_{\lambda,g}(\mathbf{w})=\arg\min_{\mathbf{u}}\dfrac{1}{2}||\mathbf{u}-\mathbf{w}||^2+\lambda{}g(\mathbf{u}).
 ```
 Similarly, the projection operator is defined as
 ```math

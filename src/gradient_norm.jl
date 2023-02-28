@@ -6,7 +6,10 @@ export gradient_norm
 # Gradient mixed norm
 
 """
-    gradient_norm(p1, p2, n, h; weight=nothing, complex=false, gpu=false, options=exact_argmin())
+    gradient_norm(p1, p2, n, h; weight=nothing,
+                                complex=false,
+                                gpu=false,
+                                options=exact_argmin())
 
 Returns the regularization function associated to the weighted gradient mixed norm ``g(\\mathbf{u})=||\\mathrm{A}\\nabla\\mathbf{u}||_{p1,p2}``.
 

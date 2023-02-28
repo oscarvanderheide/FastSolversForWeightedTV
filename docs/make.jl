@@ -1,4 +1,6 @@
-using Documenter, FastSolversForWeightedTV
+using Documenter, AbstractProximableFunctions, FastSolversForWeightedTV
+
+const RealOrComplex{T<:Real} = Union{T, Complex{T}}
 
 format = Documenter.HTML()
 
@@ -15,7 +17,7 @@ PAGES = [
     ]
 
 makedocs(
-    modules = [FastSolversForWeightedTV],
+    modules = [AbstractProximableFunctions, FastSolversForWeightedTV],
     sitename = "FastSolversForWeightedTV.jl",
     authors = "Gabrio Rizzuti",
     format = format,

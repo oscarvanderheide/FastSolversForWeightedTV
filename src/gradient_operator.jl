@@ -5,28 +5,42 @@ export gradient_operator, gradient_eval
 
 # Generic convolutional operator
 
-struct ConvolutionalOperator{T,N}<:AbstractLinearOperator{T,N,N}
+mutable struct ConvolutionalOperator{T,N}<:AbstractLinearOperator{T,N,N}
     cdims::DenseConvDims
-    stencil::AbstractArray{T,N}
+    stencil::AbstractArray
+    init_flag::Bool
 end
+
+function convert!(x::AbstractArray{T,N}, A::ConvolutionalOperator{T,N}) where {T,N}
+    A.stencil = convert(typeof(x), A.stencil)
+    return A
+end
+
+init!(A::ConvolutionalOperator{T,N}, x::AbstractArray{T,N}) where {T,N} = ~A.init_flag && (A.init_flag=true; convert!(x, A))
 
 AbstractLinearOperators.domain_size(A::ConvolutionalOperator) = NNlib.input_size(A.cdims)
 AbstractLinearOperators.range_size(A::ConvolutionalOperator) = NNlib.output_size(A.cdims)
-AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::AbstractArray{T,N}) where {T,N} = conv(u, A.stencil)
-AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::CuArray{T,N}) where {T<:Complex,N} = conv(real(u), real(A.stencil))+im*conv(imag(u), real(A.stencil)) ### workaround for complex convolution for cuarrays
-AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::AbstractArray{T,N}) where {T,N} = ∇conv_data(v, A.stencil, A.cdims)
-AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::CuArray{T,N}) where {T<:Complex,N} = ∇conv_data(real(v), real(A.stencil), A.cdims)+im*∇conv_data(imag(v), real(A.stencil), A.cdims) ### workaround for complex convolution for cuarrays
+
+AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::Array{T,N}) where {T<:Real,N} = (init!(A, u); conv(u, A.stencil))
+AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::Array{T,N}) where {T<:Complex,N} = (init!(A, u); conv(u, A.stencil))
+AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::Array{T,N}) where {T<:Real,N} = (init!(A, v); return ∇conv_data(v, A.stencil, A.cdims))
+AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::Array{T,N}) where {T<:Complex,N} = (init!(A, v); return ∇conv_data(v, A.stencil, A.cdims))
+
+AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::AbstractArray{T,N}) where {T<:Real,N} = (init!(A, u); return conv(u, A.stencil))
+AbstractLinearOperators.matvecprod(A::ConvolutionalOperator{T,N}, u::AbstractArray{T,N}) where {T<:Complex,N} = (init!(A, u); return conv(real(u), real(A.stencil))+im*conv(imag(u), real(A.stencil)))
+AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::AbstractArray{T,N}) where {T<:Real,N} = (init!(A, v); return ∇conv_data(v, A.stencil, A.cdims))
+AbstractLinearOperators.matvecprod_adj(A::ConvolutionalOperator{T,N}, v::AbstractArray{T,N}) where {T<:Complex,N} = (init!(A, v); return ∇conv_data(real(v), real(A.stencil), A.cdims)+im*∇conv_data(imag(v), real(A.stencil), A.cdims))
 
 
 # Gradient operator
 
-function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,T}; complex::Bool=true, gpu::Bool=false) where {dim,T<:Real}
+function gradient_operator(n::NTuple{dim,Int64}, h::NTuple{dim,T}; complex::Bool=true) where {dim,T<:Real}
 
     # Gradient operator (w/out shaping)
-    stencil = gradient_stencil(h; complex=complex, gpu=gpu)
+    stencil = gradient_stencil(h; complex=complex)
     cdims = DenseConvDims((n..., 1, 1), size(stencil))
     complex ? (CT = Complex{T}) : (CT = T)
-    ∇_ = ConvolutionalOperator{CT,dim+2}(cdims, stencil)
+    ∇_ = ConvolutionalOperator{CT,dim+2}(cdims, stencil, false)
 
     # Reshaping operator
     Rin  = reshape_operator(CT, n, (n...,1,1))
@@ -39,7 +53,7 @@ end
 
 # Gradient stencil utils
 
-function gradient_stencil(h::NTuple{D,T}; complex::Bool=false, gpu::Bool=false) where {D,T<:Real}
+function gradient_stencil(h::NTuple{D,T}; complex::Bool=false) where {D,T<:Real}
     k = tuple(2*ones(Int64, D)...)
     complex ? (CT = Complex{T}) : (CT = T)
     stencil = zeros(CT,k...,1,D)
@@ -48,7 +62,7 @@ function gradient_stencil(h::NTuple{D,T}; complex::Bool=false, gpu::Bool=false) 
         idx[i] = 1:2
         view(stencil, tuple(idx...)...,1,i)[1:2] .= [T(1)/h[i]; T(-1)/h[i]]
     end
-    gpu ? (return convert(CuArray, stencil)) : (return stencil)
+    return stencil
 end
 
 

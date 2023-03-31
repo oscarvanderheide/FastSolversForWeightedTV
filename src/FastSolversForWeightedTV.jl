@@ -1,6 +1,6 @@
 module FastSolversForWeightedTV
 
-using LinearAlgebra, AbstractLinearOperators, AbstractProximableFunctions, NNlib, CUDA
+using LinearAlgebra, AbstractLinearOperators, AbstractProximableFunctions, NNlib
 
 const RealOrComplex{T<:Real} = Union{T,Complex{T}}
 

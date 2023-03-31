@@ -19,7 +19,7 @@ for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
     n = tuple(repeat([n1d,]; outer=dim)...)
     h = tuple(ones(T, dim)...)
     y = randn(CT, n); flag_gpu && (y = convert(CuArray, y))
-    g = gradient_norm(2, 1, n, h; complex=is_complex, gpu=flag_gpu)
+    g = gradient_norm(2, 1, n, h; complex=is_complex)
 
     # Constraint
     is_zero = randn(T, size(y)).>0; flag_gpu && (is_zero = convert(CuArray, is_zero))

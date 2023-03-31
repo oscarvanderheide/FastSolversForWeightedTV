@@ -8,12 +8,12 @@ nc = 3
 nb = 16
 rtol = T(1e-3)
 
-for dim = 1:3, flag_gpu = [true, false], is_complex = [true, false]
+for dim = 1:3, flag_gpu = [false], is_complex = [true, false]
 
     # Operator
     n = tuple(repeat([n1d,]; outer=dim)...)
     h = tuple(abs.(randn(T, dim))...)
-    ∇ = gradient_operator(n, h; complex=is_complex, gpu=flag_gpu)
+    ∇ = gradient_operator(n, h; complex=is_complex)
 
     # Adjoint test
     CT = is_complex ? Complex{T} : T

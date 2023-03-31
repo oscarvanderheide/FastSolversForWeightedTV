@@ -14,7 +14,7 @@ opt = FISTA_options(4f0*dim; Nesterov=true, niter=10, reset_counter=10, verbose=
 # TV norm
 n = tuple(256*ones(Int64, dim)...)
 h = tuple(ones(Float32, dim)...)
-g = gradient_norm(2,1,n,h; complex=true, gpu=flag_gpu)
+g = gradient_norm(2,1,n,h; complex=true)
 
 # Numerical phantom
 y = Float32.(TestImages.shepp_logan(n[1:2]...))

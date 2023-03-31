@@ -16,7 +16,7 @@ opt = FISTA_options(L; Nesterov=true,
                        niter=20,
                        reset_counter=10,
                        verbose=false)                                   # FISTA options
-g_TV  = gradient_norm(2, 1, n, h; complex=false, gpu=true, options=opt) # TV
+g_TV  = gradient_norm(2, 1, n, h; complex=false, options=opt) # TV
 
 # Denoising
 λ_TV = 0.5f0*norm(x_clean-x_noisy)^2/g_TV(x_clean) # Denoising weight
@@ -25,7 +25,7 @@ x_TV = prox(x_noisy, λ_TV, g_TV)                   # TV denoising
 # Reference-guided regularization
 η = 0.1f0*structural_mean(x_clean)                                                 # Stabilization term
 P = structural_weight(x_clean; η=η)                                                # Weight based on a given reference
-g_rTV  = gradient_norm(2, 1, n, h; weight=P, complex=false, gpu=true, options=opt) # Reference-guided TV
+g_rTV  = gradient_norm(2, 1, n, h; weight=P, complex=false, options=opt) # Reference-guided TV
 
 # Denoising (structure-guided)
 λ_rTV = 0.5f0*norm(x_clean-x_noisy)^2/g_rTV(x_clean) # Denoising weight

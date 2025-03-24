@@ -10,7 +10,11 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 
 [compat]
-julia = "1.8"
+julia = "1.11"
+
+[sources]
+AbstractLinearOperators = { url = "https://github.com/oscarvanderheide/AbstractLinearOperators.jl" }
+AbstractProximableFunctions = { url = "https://github.com/oscarvanderheide/AbstractProximableFunctions" }
 
 [extras]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
